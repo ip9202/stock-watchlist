@@ -36,10 +36,14 @@ export function StockSearch({ onAddStock }: StockSearchProps) {
       const response = await fetch(`/api/stocks?q=${encodeURIComponent(searchQuery)}`)
       const data = await response.json()
       
+      console.log('API Response:', data) // 디버깅 로그 추가
+      
       if (data.success) {
+        console.log('Search results:', data.data) // 검색 결과 로그 추가
         setResults(data.data || [])
         // showResults는 이미 true이므로 유지
       } else {
+        console.log('Search failed:', data.error) // 실패 로그 추가
         setResults([])
         // 검색 실패해도 결과 없음 메시지를 보여주기 위해 showResults 유지
       }
