@@ -1,0 +1,57 @@
+{
+  "051910": {
+    "corp_code": "00356361",
+    "corp_name": "LG화학",
+    "stock_code": "051910"
+  },
+  "000270": {
+    "corp_code": "00106641",
+    "corp_name": "기아",
+    "stock_code": "000270"
+  },
+  "035420": {
+    "corp_code": "00266961",
+    "corp_name": "NAVER",
+    "stock_code": "035420"
+  },
+  "028260": {
+    "corp_code": "00149655",
+    "corp_name": "삼성물산",
+    "stock_code": "028260"
+  },
+  "000660": {
+    "corp_code": "00164779",
+    "corp_name": "SK하이닉스",
+    "stock_code": "000660"
+  },
+  "005380": {
+    "corp_code": "00164742",
+    "corp_name": "현대자동차",
+    "stock_code": "005380"
+  },
+  "207940": {
+    "corp_code": "00877059",
+    "corp_name": "삼성바이오로직스",
+    "stock_code": "207940"
+  },
+  "005930": {
+    "corp_code": "00126380",
+    "corp_name": "삼성전자",
+    "stock_code": "005930"
+  },
+  "035720": {
+    "corp_code": "00258801",
+    "corp_name": "카카오",
+    "stock_code": "035720"
+  },
+  "006400": {
+    "corp_code": "00126362",
+    "corp_name": "삼성SDI",
+    "stock_code": "006400"
+  },
+  "068270": {
+    "corp_code": "00413046",
+    "corp_name": "셀트리온",
+    "stock_code": "068270"
+  }
+}

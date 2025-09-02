@@ -1,0 +1,29 @@
+# Python dependencies for Stock Watchlist Service
+# 실서버 배포시 pip install -r requirements.txt 로 설치
+
+# KRX 주식 데이터 (한국거래소)
+pykrx==1.0.51
+
+# Yahoo Finance 주가 데이터
+yfinance==0.2.18
+
+# 환경변수 처리
+python-dotenv==1.0.0
+
+# HTTP 요청
+requests==2.31.0
+
+# 데이터 처리
+pandas==2.1.4
+
+# 날짜 처리 (pykrx 의존성)
+datetime==5.5
+
+# Excel 파일 처리 (pykrx 의존성)  
+xlrd==2.0.2
+
+# 수학 연산
+numpy>=1.26.0
+
+# 시간대 처리
+pytz>=2020.1

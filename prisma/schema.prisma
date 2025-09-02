@@ -1,0 +1,78 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider          = "postgresql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  watchlists Watchlist[]
+  
+  @@map("users")
+}
+
+model Watchlist {
+  id        String   @id @default(cuid())
+  userId    String
+  symbol    String   // 종목 코드 (예: "005930")
+  name      String   // 종목명 (예: "삼성전자")
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, symbol])
+  @@map("watchlists")
+}
+
+model StockPrice {
+  id            String   @id @default(cuid())
+  symbol        String
+  price         Float
+  changeAmount  Float
+  changePercent Float
+  volume        Int
+  timestamp     DateTime @default(now())
+  
+  @@unique([symbol, timestamp])
+  @@map("stock_prices")
+}
+
+model News {
+  id          String   @id @default(cuid())
+  symbol      String
+  title       String
+  summary     String?
+  url         String
+  publishedAt DateTime
+  source      String
+  createdAt   DateTime @default(now())
+  
+  @@map("news")
+}
+
+model Disclosure {
+  id          String   @id @default(cuid())
+  symbol      String
+  title       String
+  content     String?
+  url         String
+  publishedAt DateTime
+  category    String
+  createdAt   DateTime @default(now())
+  
+  @@map("disclosures")
+}
