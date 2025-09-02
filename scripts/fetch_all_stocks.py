@@ -266,57 +266,48 @@ def create_stock_info(ticker, name, market):
     }
 
 def search_stocks(query, stocks_data, limit=20):
-    """
-    종목 검색
-    """
     if not query or not stocks_data:
         return []
-    
+
     query = query.lower().strip()
+    normalized_query = query.replace(' ', '')
     results = []
-    
+
     for stock_info in stocks_data:
         score = 0
         match_type = None
-        
-        # 종목코드 완전 일치 (최고 점수)
+
+        # 1. Symbol Match
         if query == stock_info['symbol']:
             score = 100
             match_type = 'symbol_exact'
-        
-        # 종목코드 부분 일치
         elif query in stock_info['symbol']:
-            score = 90
+            score = max(score, 90)
             match_type = 'symbol_partial'
-        
-        # 종목명 완전 일치
-        elif query == stock_info['name'].lower():
-            score = 85
+
+        # 2. Name Match
+        normalized_name = stock_info['name'].lower().replace(' ', '')
+        if normalized_query == normalized_name:
+            score = max(score, 85)
             match_type = 'name_exact'
-            
-        # 종목명 시작 부분 일치
-        elif stock_info['name'].lower().startswith(query):
-            score = 80
+        elif normalized_name.startswith(normalized_query):
+            score = max(score, 80)
             match_type = 'name_start'
-            
-        # 종목명 부분 일치
-        elif query in stock_info['name'].lower():
-            score = 70
+        elif normalized_query in normalized_name:
+            score = max(score, 70)
             match_type = 'name_partial'
+
+        # 3. Keyword Match
+        for keyword in stock_info.get('search_keywords', []):
+            normalized_keyword = keyword.lower().replace(' ', '')
+            if normalized_query == normalized_keyword:
+                score = max(score, 75)
+                match_type = 'keyword_exact'
+                break 
+            elif normalized_query in normalized_keyword:
+                score = max(score, 65)
+                match_type = 'keyword_partial'
         
-        # 검색 키워드 일치
-        else:
-            for keyword in stock_info['search_keywords']:
-                if query in keyword.lower():
-                    if query == keyword.lower():
-                        score = 75  # 키워드 완전 일치
-                        match_type = 'keyword_exact'
-                    else:
-                        score = 65  # 키워드 부분 일치 (점수 상향)
-                        match_type = 'keyword_partial'
-                    break
-        
-        # 매치된 경우 결과에 추가
         if score > 0:
             results.append({
                 'symbol': stock_info['symbol'],
@@ -325,16 +316,22 @@ def search_stocks(query, stocks_data, limit=20):
                 'score': score,
                 'match_type': match_type
             })
-    
-    # 점수순으로 정렬 후 limit 적용
+
+    # Sort and filter for uniqueness
     results.sort(key=lambda x: x['score'], reverse=True)
     
-    # score 필드 제거 (API 응답에서는 불필요)
+    unique_results = []
+    seen_symbols = set()
     for result in results:
+        if result['symbol'] not in seen_symbols:
+            unique_results.append(result)
+            seen_symbols.add(result['symbol'])
+
+    for result in unique_results:
         del result['score']
         del result['match_type']
-    
-    return results[:limit]
+
+    return unique_results[:limit]
 
 def main():
     parser = argparse.ArgumentParser(description='Complete Korean stock search using PyKRX')

@@ -38,7 +38,12 @@ export function StockCard({ symbol, defaultName = "로딩 중..." }: StockCardPr
         const stockResult = await stockResponse.json()
         
         if (stockResult.success && stockResult.data) {
-          setData(stockResult.data)
+          const fetchedData = stockResult.data;
+          // defaultName이 유효한 값(초기값이 아닌 경우)이면 API 결과의 name을 덮어씁니다.
+          if (defaultName && defaultName !== "로딩 중...") {
+            fetchedData.name = defaultName;
+          }
+          setData(fetchedData);
         } else {
           setError(true)
         }

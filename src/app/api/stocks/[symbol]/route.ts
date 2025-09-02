@@ -4,6 +4,7 @@ import { exec } from 'child_process'
 import { promisify } from 'util'
 import path from 'path'
 import { cache } from '@/lib/cache'
+import { promises as fs } from 'fs'
 
 const execAsync = promisify(exec)
 
@@ -63,10 +64,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       }, { status: 500 })
     }
 
+    // 한글 종목명 가져오기
+    const allStocksPath = path.join(process.cwd(), 'all_stocks_cache.json');
+    const allStocksFile = await fs.readFile(allStocksPath, 'utf-8');
+    const allStocksData = JSON.parse(allStocksFile);
+    
+    const stockFromCache = allStocksData.data.find((stock: any) => stock.symbol === symbol);
+    const koreanName = stockFromCache?.name;
+
     // StockInfo 형식으로 변환
     const stockInfo: StockInfo = {
       symbol: pythonResult.symbol,
-      name: pythonResult.name,
+      name: koreanName || pythonResult.name, // 한글 이름이 있으면 사용, 없으면 API 결과 사용
       price: pythonResult.price,
       changeAmount: pythonResult.changeAmount,
       changePercent: pythonResult.changePercent,

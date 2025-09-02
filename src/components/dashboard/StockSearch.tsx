@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Search, Plus, Loader2 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+// import { Card, CardContent } from '@/components/ui/card'
 
 interface SearchResult {
   symbol: string
@@ -31,21 +31,22 @@ export function StockSearch({ onAddStock }: StockSearchProps) {
     }
 
     setIsLoading(true)
+    setShowResults(true) // 로딩 시작할 때 바로 드롭다운 표시
     try {
       const response = await fetch(`/api/stocks?q=${encodeURIComponent(searchQuery)}`)
       const data = await response.json()
       
       if (data.success) {
         setResults(data.data || [])
-        setShowResults(true)
+        // showResults는 이미 true이므로 유지
       } else {
         setResults([])
-        setShowResults(false)
+        // 검색 실패해도 결과 없음 메시지를 보여주기 위해 showResults 유지
       }
     } catch (error) {
       console.error('Search error:', error)
       setResults([])
-      setShowResults(false)
+      // 오류 발생해도 결과 없음 메시지를 보여주기 위해 showResults 유지
     } finally {
       setIsLoading(false)
     }
@@ -116,7 +117,12 @@ export function StockSearch({ onAddStock }: StockSearchProps) {
                   ? 'border-t-0 rounded-t-none rounded-b-md' 
                   : 'rounded-md mt-1'
               }`}>
-            {results.length > 0 ? (
+            {isLoading ? (
+              <div className="p-4 text-center text-gray-500 text-sm">
+                <Loader2 className="inline h-4 w-4 animate-spin mr-2" />
+                검색 중...
+              </div>
+            ) : results.length > 0 ? (
               <div className="max-h-64 overflow-y-auto">
                 {results.map((stock, index) => (
                   <div

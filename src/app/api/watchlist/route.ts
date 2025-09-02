@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { WatchlistItem, ApiResponse } from '@/types/stock'
+import { Prisma } from '@prisma/client'
 
 // 관심종목 조회
 export async function GET(request: NextRequest) {
@@ -115,6 +116,12 @@ export async function POST(request: NextRequest) {
     }, { status: 201 })
 
   } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      return NextResponse.json<ApiResponse>({
+        success: false,
+        error: 'Stock already exists in watchlist'
+      }, { status: 409 })
+    }
     console.error('Watchlist POST error:', error)
     return NextResponse.json<ApiResponse>({
       success: false,
