@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { StockInfo } from '@/types/stock'
 import { ApiResponse } from '@/types/api'
-import { exec } from 'child_process'
-import { promisify } from 'util'
 import path from 'path'
 import { cache } from '@/lib/cache'
 import { promises as fs } from 'fs'
-
-const execAsync = promisify(exec)
+import { executeScript } from '@/lib/python-executor'
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ symbol: string }> }) {
   try {
@@ -35,22 +32,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     console.log(`Cache MISS for ${symbol} - fetching new data`)
 
-    // Python 스크립트 경로
-    const scriptPath = path.join(process.cwd(), 'scripts', 'fetch_stock_data.py')
+    // Python 스크립트 실행 (환경 자동 감지)
+    const result = await executeScript('scripts/fetch_stock_data.py', ['--symbol', symbol])
     
-    // Python 스크립트 실행 (conda 환경 활성화 후)
-    const command = `source /opt/anaconda3/etc/profile.d/conda.sh && conda activate py3_12 && python ${scriptPath} --symbol ${symbol}`
-    
-    console.log(`Executing: ${command}`)
-    
-    const { stdout, stderr } = await execAsync(command)
-    
-    if (stderr) {
-      console.warn('Python script stderr:', stderr)
+    if (!result.success) {
+      return NextResponse.json<ApiResponse>({
+        success: false,
+        error: result.error || 'Failed to fetch stock data'
+      }, { status: 500 })
     }
     
     // Python 스크립트 결과 파싱
-    const pythonResult = JSON.parse(stdout)
+    const pythonResult = JSON.parse(result.output)
     
     if (!pythonResult.success) {
       return NextResponse.json<ApiResponse>({
