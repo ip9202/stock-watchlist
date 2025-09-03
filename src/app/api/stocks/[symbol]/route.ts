@@ -73,6 +73,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       low: pythonResult.low,
       open: pythonResult.open,
       previousClose: pythonResult.previousClose,
+      high52w: pythonResult.high52w,
+      low52w: pythonResult.low52w,
       timestamp: new Date(pythonResult.timestamp),
       extra_info: pythonResult.extra_info || {}
     }

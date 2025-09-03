@@ -10,6 +10,8 @@ export interface StockInfo {
   low?: number
   open?: number
   previousClose?: number
+  high52w?: number
+  low52w?: number
   timestamp?: Date
   extra_info?: {
     currency?: string
@@ -19,6 +21,9 @@ export interface StockInfo {
     fiftyTwoWeekHigh?: number
     fiftyTwoWeekLow?: number
     sharesOutstanding?: number
+    data_source?: string
+    last_updated?: string
+    is_etf?: boolean
   }
 }
 
