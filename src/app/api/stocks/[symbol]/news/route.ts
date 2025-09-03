@@ -3,7 +3,7 @@ import { executeScript } from '@/lib/python-executor'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { symbol: string } }
+  { params }: { params: Promise<{ symbol: string }> }
 ) {
   try {
     const { symbol } = await params

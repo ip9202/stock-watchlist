@@ -2,16 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { ApiResponse } from '@/types/api'
 
-interface RouteParams {
-  params: {
-    id: string
-  }
-}
-
 // 관심종목 삭제
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = params
+    const { id } = await params
 
     if (!id) {
       return NextResponse.json<ApiResponse>({
@@ -77,8 +71,8 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-// 심볼로 관심종목 삭제 (편의 기능)
-export async function POST(request: NextRequest, { params }: RouteParams) {
+// 심볼로 관심종목 삭제 (편의 기능)  
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { symbol } = await request.json()
     

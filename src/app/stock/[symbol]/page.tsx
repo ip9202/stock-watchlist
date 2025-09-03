@@ -10,9 +10,9 @@ import { formatMarketCapKorean } from "@/lib/utils"
 import Link from "next/link"
 
 interface StockPageProps {
-  params: {
+  params: Promise<{
     symbol: string
-  }
+  }>
 }
 
 // 섹터 번역 함수

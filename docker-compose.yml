@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: stock_user
+      POSTGRES_PASSWORD: stock_password
+      POSTGRES_DB: stock_watchlist
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stock_user -d stock_watchlist"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - stock_network
+
+  # Stock Watchlist Application
+  app:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      # Database
+      DATABASE_URL: "postgresql://stock_user:stock_password@postgres:5432/stock_watchlist"
+      
+      # APIs (load from .env.local)
+      NAVER_CLIENT_ID: "${NAVER_CLIENT_ID:-default_naver_id}"
+      NAVER_CLIENT_SECRET: "${NAVER_CLIENT_SECRET:-default_naver_secret}"
+      DART_API_KEY: "${DART_API_KEY:-default_dart_key}"
+      KOREA_INVESTMENT_APP_KEY: "${KOREA_INVESTMENT_APP_KEY:-default_ki_key}"
+      KOREA_INVESTMENT_APP_SECRET: "${KOREA_INVESTMENT_APP_SECRET:-default_ki_secret}"
+      
+      # Application
+      NODE_ENV: production
+      PYTHONPATH: /app
+      PYTHON_UNBUFFERED: 1
+      
+    ports:
+      - "3002:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - stock_network
+    volumes:
+      # 개발시 실시간 로그 확인용 (옵션)
+      - ./logs:/app/logs:rw
+
+networks:
+  stock_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local

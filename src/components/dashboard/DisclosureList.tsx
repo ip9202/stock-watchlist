@@ -69,10 +69,10 @@ export function DisclosureList({
 
         // 날짜순으로 정렬 (최신순) - 안전한 정렬
         const sortedDisclosures = allDisclosures
-          .filter(item => item && (item.rcept_dt || item.disclosure_date)) // 유효한 데이터만 필터링
+          .filter(item => item && item.rcept_dt) // 유효한 데이터만 필터링
           .sort((a, b) => {
-            const dateA = a.rcept_dt || a.disclosure_date || '0'
-            const dateB = b.rcept_dt || b.disclosure_date || '0'
+            const dateA = a.rcept_dt || '0'
+            const dateB = b.rcept_dt || '0'
             return dateB.localeCompare(dateA)
           })
           .slice(0, maxItems)
@@ -197,23 +197,23 @@ export function DisclosureList({
                     <div className="flex items-center gap-2 mb-1">
                       <Badge 
                         variant="secondary" 
-                        className={`text-xs ${getReportTypeColor(disclosure.report_nm || disclosure.title || '')}`}
+                        className={`text-xs ${getReportTypeColor(disclosure.report_nm || '')}`}
                       >
-                        {((disclosure.report_nm || disclosure.title || '').length > 15) 
-                          ? (disclosure.report_nm || disclosure.title || '').substring(0, 15) + '...'
-                          : (disclosure.report_nm || disclosure.title || '')
+                        {((disclosure.report_nm || '').length > 15) 
+                          ? (disclosure.report_nm || '').substring(0, 15) + '...'
+                          : (disclosure.report_nm || '')
                         }
                       </Badge>
                       <div className="flex items-center text-xs text-gray-500">
                         <Calendar className="h-3 w-3 mr-1" />
-                        {formatDate(disclosure.rcept_dt || disclosure.disclosure_date || '')}
+                        {formatDate(disclosure.rcept_dt || '')}
                       </div>
                     </div>
                     
                     <div className="flex items-center gap-2 mb-1">
                       <Building2 className="h-3 w-3 text-gray-400 flex-shrink-0" />
                       <span className="text-sm font-medium truncate text-gray-900">
-                        {disclosure.corp_name || disclosure.company_name || ''}
+                        {disclosure.corp_name || ''}
                       </span>
                     </div>
                     

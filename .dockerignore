@@ -1,0 +1,77 @@
+# Dependencies
+node_modules
+npm-debug.log*
+
+# Next.js
+.next/
+out/
+
+# Environment files
+.env*.local
+.env.development
+.env.test
+
+# Logs
+logs
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Prisma
+prisma/dev.db*
+*.db
+*.sqlite*
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Documentation (keep README.md but exclude others)
+*.md
+!README.md
+
+# Cache
+.cache/
+
+# Local development files
+all_stocks_cache.json

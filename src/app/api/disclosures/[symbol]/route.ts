@@ -2,12 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { spawn } from 'child_process'
 import { ApiResponse } from '@/types/api'
 
-interface RouteParams {
-  params: {
-    symbol: string
-  }
-}
-
 interface DisclosureItem {
   rcept_no: string
   rcept_dt: string
@@ -25,9 +19,9 @@ interface DisclosureData {
 }
 
 // 특정 종목의 공시정보 조회
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ symbol: string }> }) {
   try {
-    const { symbol } = params
+    const { symbol } = await params
     const { searchParams } = new URL(request.url)
     const days = parseInt(searchParams.get('days') || '7')
 

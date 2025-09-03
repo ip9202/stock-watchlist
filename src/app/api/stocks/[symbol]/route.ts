@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { StockInfo, ApiResponse } from '@/types/stock'
+import { StockInfo } from '@/types/stock'
+import { ApiResponse } from '@/types/api'
 import { exec } from 'child_process'
 import { promisify } from 'util'
 import path from 'path'
@@ -8,13 +9,7 @@ import { promises as fs } from 'fs'
 
 const execAsync = promisify(exec)
 
-interface RouteParams {
-  params: {
-    symbol: string
-  }
-}
-
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ symbol: string }> }) {
   try {
     const { symbol } = await params
 

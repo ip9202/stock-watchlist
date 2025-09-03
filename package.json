@@ -5,12 +5,18 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "prisma generate && prisma migrate deploy && next build --turbopack",
+    "build:docker": "next build",
     "start": "next start",
     "lint": "eslint",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "docker:start": "./docker-start.sh",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up",
+    "docker:down": "docker-compose down",
+    "docker:test": "docker-compose up --build"
   },
   "dependencies": {
     "@prisma/client": "^6.15.0",

@@ -336,6 +336,7 @@ def search_stocks(query, stocks_data, limit=20):
 def main():
     parser = argparse.ArgumentParser(description='Complete Korean stock search using PyKRX')
     parser.add_argument('--search', '-s', type=str, help='Search query')
+    parser.add_argument('--search-file', type=str, help='File containing search query (UTF-8)')
     parser.add_argument('--limit', '-l', type=int, default=20, help='Search result limit')
     parser.add_argument('--cache', '-c', type=str, help='Cache file path for stock data')
     parser.add_argument('--refresh', '-r', action='store_true', help='Force refresh stock data')
@@ -352,13 +353,16 @@ def main():
             try:
                 with open(cache_file, 'r', encoding='utf-8') as f:
                     cached_data = json.load(f)
-                    # 캐시가 오늘 것인지 확인
+                    # 캐시가 있으면 사용 (7일 이내)
                     cache_date = cached_data.get('timestamp', '')
-                    if cache_date.startswith(datetime.now().strftime('%Y-%m-%d')):
-                        stocks_data = cached_data['data']
-                        print(f"캐시에서 {len(stocks_data)}개 종목 로드", file=sys.stderr)
-            except:
-                pass
+                    if cache_date:
+                        # 7일 이내 캐시면 사용
+                        cache_time = datetime.fromisoformat(cache_date.replace('Z', '+00:00') if 'Z' in cache_date else cache_date)
+                        if (datetime.now() - cache_time).days <= 7:
+                            stocks_data = cached_data['data']
+                            print(f"캐시에서 {len(stocks_data)}개 종목 로드 (캐시 날짜: {cache_date[:10]})", file=sys.stderr)
+            except Exception as e:
+                print(f"캐시 로드 실패: {e}", file=sys.stderr)
         
         # 캐시가 없거나 새로고침인 경우 새로 가져오기
         if stocks_data is None:
@@ -377,13 +381,32 @@ def main():
             except Exception as e:
                 print(f"캐시 저장 실패: {e}", file=sys.stderr)
         
+        # 검색 쿼리 결정 (환경변수 우선)
+        search_query = None
+        import os
+        
+        if os.getenv('SEARCH_QUERY'):
+            search_query = os.getenv('SEARCH_QUERY')
+            print(f"환경변수에서 검색 쿼리 읽음: {search_query}", file=sys.stderr)
+        elif args.search_file:
+            try:
+                with open(args.search_file, 'r', encoding='utf-8') as f:
+                    search_query = f.read().strip()
+                    print(f"파일에서 검색 쿼리 읽음: {search_query}", file=sys.stderr)
+                # 임시 파일 삭제
+                os.remove(args.search_file)
+            except Exception as e:
+                print(f"검색 파일 읽기 실패: {e}", file=sys.stderr)
+        elif args.search:
+            search_query = args.search
+        
         # 검색 수행
-        if args.search:
-            search_results = search_stocks(args.search, stocks_data, args.limit)
+        if search_query:
+            search_results = search_stocks(search_query, stocks_data, args.limit)
             
             output = {
                 'success': True,
-                'query': args.search,
+                'query': search_query,
                 'results': search_results,
                 'total_found': len(search_results),
                 'timestamp': datetime.now().isoformat()

@@ -29,13 +29,15 @@ export function createPythonCommand(options: PythonExecutionOptions): string {
   // 환경변수에서 Python 경로 가져오기
   const customPythonPath = process.env.PYTHON_PATH
   
-  // 인수를 안전하게 이스케이프 처리
+  // 인수를 안전하게 이스케이프 처리 (한글 지원)
   const escapedArgs = args.map(arg => {
-    // 공백이나 특수문자가 있는 경우 따옴표로 감싸기
-    if (arg.includes(' ') || arg.includes('(') || arg.includes(')') || arg.includes('&')) {
-      return `"${arg.replace(/"/g, '\\"')}"`
+    // 한글 문자를 Base64로 인코딩하여 전달
+    if (/[ㄱ-ㅎ가-힣]/.test(arg)) {
+      const encoded = Buffer.from(arg, 'utf8').toString('base64')
+      return `"$(echo '${encoded}' | base64 -d)"`
     }
-    return arg
+    // 일반 인수는 따옴표로 감싸기
+    return `"${arg.replace(/"/g, '\\"')}"`
   }).join(' ')
   
   if (isProd || customPythonPath) {

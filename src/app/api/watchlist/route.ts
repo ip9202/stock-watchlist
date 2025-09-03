@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { WatchlistItem, ApiResponse } from '@/types/stock'
+import { WatchlistItem } from '@/types/stock'
+import { ApiResponse } from '@/types/api'
 import { Prisma } from '@prisma/client'
 
 // 관심종목 조회
