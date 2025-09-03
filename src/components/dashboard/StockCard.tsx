@@ -14,6 +14,8 @@ interface StockData {
   changePercent: number
   volume: number
   marketCap: string | number
+  high52w?: number
+  low52w?: number
   timestamp?: string
 }
 
@@ -188,6 +190,25 @@ export function StockCard({ symbol, defaultName = "로딩 중..." }: StockCardPr
                   </div>
                 </div>
               </div>
+              
+              {(data.high52w !== undefined || data.low52w !== undefined) && (
+                <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-100">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1 h-1 rounded-full bg-green-400"></div>
+                    <div>
+                      <p className="text-xs text-gray-400">52주 최고</p>
+                      <p className="font-semibold text-gray-700">{data.high52w?.toLocaleString() || 'N/A'}원</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-1 h-1 rounded-full bg-red-400"></div>
+                    <div>
+                      <p className="text-xs text-gray-400">52주 최저</p>
+                      <p className="font-semibold text-gray-700">{data.low52w?.toLocaleString() || 'N/A'}원</p>
+                    </div>
+                  </div>
+                </div>
+              )}
               
               <div className="flex items-center justify-between border-t border-gray-100 pt-2">
                 <div className="flex items-center gap-1">
