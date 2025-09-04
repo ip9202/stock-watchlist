@@ -401,14 +401,14 @@ export default function StockPage({ params }: StockPageProps) {
                   <div className="text-center p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-200">
                     <p className="text-xs font-medium text-gray-600 mb-1 sm:mb-2 uppercase tracking-wide">52주 최고</p>
                     <p className="text-sm sm:text-lg font-bold text-gray-900">
-                      {data.extra_info?.fiftyTwoWeekHigh?.toLocaleString() || 'N/A'}
+                      {data.high52w?.toLocaleString() || data.extra_info?.fiftyTwoWeekHigh?.toLocaleString() || 'N/A'}
                     </p>
                     <p className="text-xs text-gray-500 mt-0.5 sm:mt-1">원</p>
                   </div>
                   <div className="text-center p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-200">
                     <p className="text-xs font-medium text-gray-600 mb-1 sm:mb-2 uppercase tracking-wide">52주 최저</p>
                     <p className="text-sm sm:text-lg font-bold text-gray-900">
-                      {data.extra_info?.fiftyTwoWeekLow?.toLocaleString() || 'N/A'}
+                      {data.low52w?.toLocaleString() || data.extra_info?.fiftyTwoWeekLow?.toLocaleString() || 'N/A'}
                     </p>
                     <p className="text-xs text-gray-500 mt-0.5 sm:mt-1">원</p>
                   </div>

@@ -18,11 +18,11 @@
 
 ### 🔧 기술 스택
 - **Frontend**: Next.js 15.5.2 + React 19 + TypeScript
-- **Database**: PostgreSQL (로컬 개발용)
+- **Database**: PostgreSQL
 - **ORM**: Prisma
 - **Styling**: Tailwind CSS v4
 - **Data Collection**: Python + conda 환경
-- **배포 예정**: Vercel + Supabase
+- **배포**: Railway (Docker 컨테이너)
 
 ## 🏃‍♂️ 로컬 개발 시작하기
 
@@ -73,5 +73,18 @@ prisma/
 scripts/               # Python 데이터 수집 스크립트
 ```
 
-## 🚀 배포
-자세한 배포 가이드는 [DEPLOYMENT.md](./DEPLOYMENT.md) 참조
+## 🚀 배포 (Railway + Docker)
+
+### 1. GitHub Repository
+```bash
+# GitHub에 코드 push
+git add .
+git commit -m "Ready for Railway deployment"
+git push origin main
+```
+
+### 2. Railway 배포
+- Railway 프로젝트 생성
+- GitHub 레포지토리 연결
+- Docker 컨테이너 자동 빌드 및 배포
+- 환경변수 설정 (DATABASE_URL, API_KEY 등)

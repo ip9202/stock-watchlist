@@ -55,8 +55,8 @@ export default function DashboardPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Search Section */}
         <div className="mb-8 relative z-50">
-          <Card className="bg-white border border-gray-200 overflow-visible">
-            <CardHeader className="bg-gray-50 border-b border-gray-200 overflow-visible">
+          <Card className="bg-white border border-gray-200 overflow-visible rounded-lg">
+            <CardHeader className="bg-gray-50 border-b border-gray-200 overflow-visible rounded-t-lg">
               <CardTitle className="flex items-center space-x-3">
                 <div className="w-1 h-6 bg-blue-600 rounded-full"></div>
                 <span className="text-lg font-semibold text-gray-900">종목 검색</span>
