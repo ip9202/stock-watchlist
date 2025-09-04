@@ -6,6 +6,9 @@ export interface StockInfo {
   changePercent: number
   volume: number
   marketCap?: number
+  tradingValue?: number      // 추가: 거래대금
+  sharesOutstanding?: number // 추가: 상장주식수
+  volumeRatio?: number       // 추가: 거래량비중
   high?: number
   low?: number
   open?: number
@@ -20,7 +23,6 @@ export interface StockInfo {
     industry?: string
     fiftyTwoWeekHigh?: number
     fiftyTwoWeekLow?: number
-    sharesOutstanding?: number
     data_source?: string
     last_updated?: string
     is_etf?: boolean

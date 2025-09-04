@@ -122,26 +122,31 @@ def get_korean_stock_info(symbol):
         change_amount = current_price - previous_close
         change_percent = round((change_amount / previous_close * 100), 2) if previous_close else 0
         
-        # 시가총액 및 52주 최고/최저 계산
+        # 시가총액, 거래대금, 상장주식수 및 52주 최고/최저 계산
         market_cap = 0
+        trading_value = 0
+        shares_outstanding = 0
         high_52w = 0
         low_52w = 0
         
         if not is_etf:  # 일반 주식만 시가총액 계산
             try:
-                # 시가총액과 상장주식수 직접 조회
+                # 시가총액과 상장주식수, 거래대금 직접 조회
                 cap_data = stock.get_market_cap_by_date(today, today, symbol)
                 if cap_data.empty:
                     cap_data = stock.get_market_cap_by_date(yesterday, yesterday, symbol)
                 
                 if not cap_data.empty:
-                    # 직접 시가총액 사용 (PyKRX에서 계산된 값)
+                    # 모든 데이터 수집 (PyKRX에서 제공되는 값들)
                     market_cap = int(cap_data.iloc[-1]['시가총액'])
-                    shares_outstanding = int(cap_data.iloc[-1]['상장주식수'])
-                    print(f"시가총액: {market_cap:,}원, 상장주식수: {shares_outstanding:,}주", file=sys.stderr)
+                    trading_value = int(cap_data.iloc[-1]['거래대금'])  # 추가!
+                    shares_outstanding = int(cap_data.iloc[-1]['상장주식수'])  # 추가!
+                    print(f"시가총액: {market_cap:,}원, 거래대금: {trading_value:,}원, 상장주식수: {shares_outstanding:,}주", file=sys.stderr)
             except Exception as e:
                 print(f"시가총액 계산 실패: {e}", file=sys.stderr)
                 market_cap = 0
+                trading_value = 0
+                shares_outstanding = 0
         else:  # ETF의 경우
             try:
                 # ETF NAV (Net Asset Value) 정보 가져오기
@@ -176,6 +181,25 @@ def get_korean_stock_info(symbol):
             high_52w = 0
             low_52w = 0
         
+        # 거래량 비중 계산 (평균 대비 거래량)
+        volume_ratio = 0
+        try:
+            # 최근 30일 평균 거래량과 비교
+            thirty_days_ago = (datetime.now() - timedelta(days=30)).strftime('%Y%m%d')
+            
+            if is_etf:
+                historical_df = stock.get_etf_ohlcv_by_date(thirty_days_ago, today, symbol)
+            else:
+                historical_df = stock.get_market_ohlcv_by_date(thirty_days_ago, today, symbol)
+            
+            if not historical_df.empty and len(historical_df) > 1:
+                avg_volume = historical_df['거래량'].mean()
+                volume_ratio = round((volume / avg_volume * 100), 0) if avg_volume > 0 else 0
+                print(f"평균 거래량: {avg_volume:,.0f}, 현재 거래량: {volume:,}, 거래량 비중: {volume_ratio:.0f}%", file=sys.stderr)
+        except Exception as e:
+            print(f"거래량 비중 계산 실패: {e}", file=sys.stderr)
+            volume_ratio = 0
+
         # 결과 반환
         return {
             'success': True,
@@ -186,6 +210,9 @@ def get_korean_stock_info(symbol):
             'changePercent': change_percent,
             'volume': volume,
             'marketCap': market_cap,
+            'tradingValue': trading_value,  # 추가!
+            'sharesOutstanding': shares_outstanding,  # 추가!
+            'volumeRatio': volume_ratio,  # 추가!
             'high': high_price,
             'low': low_price,
             'open': open_price,
