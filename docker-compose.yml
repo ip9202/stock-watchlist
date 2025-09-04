@@ -33,8 +33,6 @@ services:
       NAVER_CLIENT_ID: "${NAVER_CLIENT_ID:-default_naver_id}"
       NAVER_CLIENT_SECRET: "${NAVER_CLIENT_SECRET:-default_naver_secret}"
       DART_API_KEY: "${DART_API_KEY:-default_dart_key}"
-      KOREA_INVESTMENT_APP_KEY: "${KOREA_INVESTMENT_APP_KEY:-default_ki_key}"
-      KOREA_INVESTMENT_APP_SECRET: "${KOREA_INVESTMENT_APP_SECRET:-default_ki_secret}"
       
       # Application
       NODE_ENV: production

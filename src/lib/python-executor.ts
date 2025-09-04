@@ -101,8 +101,6 @@ export async function executeScript(scriptPath: string, args: string[] = []): Pr
       NAVER_CLIENT_ID: process.env.NAVER_CLIENT_ID,
       NAVER_CLIENT_SECRET: process.env.NAVER_CLIENT_SECRET,
       DART_API_KEY: process.env.DART_API_KEY,
-      KOREA_INVESTMENT_APP_KEY: process.env.KOREA_INVESTMENT_APP_KEY,
-      KOREA_INVESTMENT_APP_SECRET: process.env.KOREA_INVESTMENT_APP_SECRET,
     }
     
     const { stdout, stderr } = await execAsync(command, {
