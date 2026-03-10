@@ -4,20 +4,29 @@
  * REQ-003: 개별 종목 시세 조회 전환
  * REQ-004: 데이터 완전성 보장
  *
- * 엔드포인트: POST https://api.kiwoom.com/api/dostk/stkinfo
- * 헤더 api-id로 TR 구분: ka10001(현재가시세), ka10099(종목리스트)
+ * 엔드포인트:
+ * - POST https://api.kiwoom.com/api/dostk/stkinfo (주식 정보)
+ *   api-id 헤더로 TR 구분: ka10001(현재가시세), ka10099(종목리스트)
+ * - POST https://api.kiwoom.com/api/dostk/chart (차트 데이터, SPEC-CHART-001)
+ *   api-id 헤더로 TR 구분: ka10081(일봉), ka10082(주봉)
+ *   페이지네이션: cont-yn/next-key 응답 헤더 사용
  */
 
 import axios from 'axios'
 import KiwoomTokenManager from './kiwoom-token-manager'
+import type { ChartData, ChartCandle } from '../types/stock'
 
 // @MX:ANCHOR: 키움 REST API 엔드포인트 - 모든 국내주식 조회에 단일 URL 사용
 // @MX:REASON: api-id 헤더로 TR 구분, GET이 아닌 POST 방식
 
 const API_BASE_URL = 'https://api.kiwoom.com'
 const STKINFO_ENDPOINT = `${API_BASE_URL}/api/dostk/stkinfo`
+// @MX:NOTE: 차트 API 엔드포인트 - 일봉(ka10081), 주봉(ka10082) 조회에 사용
+const CHART_ENDPOINT = `${API_BASE_URL}/api/dostk/chart`
 
 const REQUEST_TIMEOUT = 30000 // 30초
+// 차트 페이지네이션 최대 횟수 (무한 루프 방지)
+const CHART_MAX_PAGES = 5
 
 export interface StockInfo {
   symbol: string
@@ -76,6 +85,23 @@ interface KiwoomStockDetailResponse {
   oyr_hgst?: string    // 52주 최고가 (+/- 부호 포함)
   oyr_lwst?: string    // 52주 최저가 (+/- 부호 포함)
   trde_pre?: string    // 거래량 전일비율 (+/- 부호 포함)
+}
+
+// ka10081/ka10082 차트 응답: 개별 캔들 데이터
+interface KiwoomChartCandleItem {
+  dt?: string       // 날짜 (YYYYMMDD)
+  opnprc?: string   // 시가
+  hgprc?: string    // 고가
+  lwprc?: string    // 저가
+  clsprc?: string   // 종가
+  trde_qty?: string // 거래량
+}
+
+// ka10081/ka10082 차트 응답
+interface KiwoomChartResponse {
+  return_code: number
+  return_msg?: string
+  output?: KiwoomChartCandleItem[]
 }
 
 export class KiwoomStockAPI {
@@ -170,6 +196,93 @@ export class KiwoomStockAPI {
         throw error
       }
       throw new Error('알 수 없는 에러가 발생했습니다')
+    }
+  }
+
+  /**
+   * 차트 데이터 조회 (SPEC-CHART-001)
+   * TR: ka10081(일봉), ka10082(주봉)
+   * @param symbol - 종목코드
+   * @param apiId - TR ID (ka10081: 일봉, ka10082: 주봉)
+   * @param params - 조회 파라미터 (from, to, reqCnt)
+   */
+  async fetchChart(
+    symbol: string,
+    apiId: string,
+    params: { from?: string; to?: string; reqCnt?: string }
+  ): Promise<ChartData> {
+    const token = await KiwoomTokenManager.getInstance().getAccessToken()
+
+    // 기간 매핑: ka10081 → daily, ka10082 → weekly
+    const period: 'daily' | 'weekly' = apiId === 'ka10082' ? 'weekly' : 'daily'
+
+    const allCandles: ChartCandle[] = []
+    let contYn = 'Y'
+    let nextKey = ''
+    let pageCount = 0
+
+    while (contYn === 'Y' && pageCount < CHART_MAX_PAGES) {
+      // 요청 본문 구성
+      const requestBody: Record<string, string> = {
+        stk_cd: symbol,
+        req_cnt: params.reqCnt || '100'
+      }
+      if (params.from) requestBody['from'] = params.from
+      if (params.to) requestBody['to'] = params.to
+      // 페이지네이션: 두 번째 요청부터 next_key 포함
+      if (nextKey) requestBody['next_key'] = nextKey
+
+      const response = await axios.post(
+        CHART_ENDPOINT,
+        requestBody,
+        {
+          headers: this.createHeaders(token, apiId),
+          timeout: REQUEST_TIMEOUT
+        }
+      )
+
+      const result = response.data as KiwoomChartResponse
+      if (result.return_code !== 0) {
+        throw new Error(`차트 데이터 조회 실패: ${result.return_msg || '알 수 없는 에러'}`)
+      }
+
+      // 캔들 데이터 변환
+      const outputList: KiwoomChartCandleItem[] = result.output || []
+      const candles = outputList.map(item => this.transformChartCandle(item))
+      allCandles.push(...candles)
+
+      // 페이지네이션 헤더 확인
+      const responseHeaders = response.headers || {}
+      contYn = responseHeaders['cont-yn'] || 'N'
+      nextKey = responseHeaders['next-key'] || ''
+      pageCount++
+    }
+
+    return {
+      symbol,
+      period,
+      candles: allCandles
+    }
+  }
+
+  /**
+   * 차트 캔들 데이터 변환
+   * @MX:NOTE: parseSignedNumber 미사용 - 차트 가격은 절대값, 부호 처리 불필요
+   */
+  private transformChartCandle(item: KiwoomChartCandleItem): ChartCandle {
+    // 날짜 변환: YYYYMMDD → YYYY-MM-DD
+    const rawDate = item.dt || ''
+    const date = rawDate.length === 8
+      ? `${rawDate.slice(0, 4)}-${rawDate.slice(4, 6)}-${rawDate.slice(6, 8)}`
+      : rawDate
+
+    return {
+      date,
+      open: this.parseNumber(item.opnprc) ?? 0,
+      high: this.parseNumber(item.hgprc) ?? 0,
+      low: this.parseNumber(item.lwprc) ?? 0,
+      close: this.parseNumber(item.clsprc) ?? 0,
+      volume: this.parseNumber(item.trde_qty) ?? 0
     }
   }
 

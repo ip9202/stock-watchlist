@@ -1,13 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Footer } from "@/components/layout/Footer"
 import { ArrowLeft, TrendingUp, TrendingDown, ExternalLink, Calendar, Building } from "lucide-react"
 import { formatMarketCapKorean } from "@/lib/utils"
 import Link from "next/link"
+import { StockChart } from "@/components/chart"
 
 interface StockPageProps {
   params: Promise<{
@@ -90,7 +91,6 @@ const translateIndustry = (industry: string) => {
 }
 
 export default function StockPage({ params }: StockPageProps) {
-  const router = useRouter()
   const [symbol, setSymbol] = useState<string>('')
   const [stockData, setStockData] = useState<any>(null)
   const [newsData, setNewsData] = useState<any>(null)
@@ -414,30 +414,13 @@ export default function StockPage({ params }: StockPageProps) {
                   </div>
                 </div>
 
-                {/* Real-time Chart Links */}
+                {/* 주가 차트 (SPEC-CHART-001) */}
                 <div className="border-t border-gray-200 pt-4 sm:pt-6 mb-4 sm:mb-6">
                   <h4 className="text-sm font-semibold text-gray-700 mb-3 sm:mb-4 flex items-center">
                     <div className="w-1 h-4 bg-green-600 rounded-full mr-2"></div>
-                    실시간 차트 보기
+                    주가 차트
                   </h4>
-                  <div className="grid grid-cols-2 gap-3 sm:gap-4 max-w-sm">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="bg-white border-green-300 text-green-700 hover:bg-green-50 hover:text-green-800 hover:border-green-400 transition-all text-sm font-medium py-3"
-                      onClick={() => window.open(`https://finance.naver.com/item/main.naver?code=${symbol}`, '_blank')}
-                    >
-                      📈 네이버 차트
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="bg-white border-blue-300 text-blue-700 hover:bg-blue-50 hover:text-blue-800 hover:border-blue-400 transition-all text-sm font-medium py-3"
-                      onClick={() => window.open(`https://finance.daum.net/quotes/A${symbol}`, '_blank')}
-                    >
-                      📊 다음 차트
-                    </Button>
-                  </div>
+                  <StockChart symbol={symbol} />
                 </div>
 
                 {/* Daily Price Data */}

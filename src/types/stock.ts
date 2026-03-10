@@ -44,3 +44,26 @@ export interface WatchlistItem {
   createdAt: Date
   updatedAt: Date
 }
+
+// 차트 캔들 데이터 (SPEC-CHART-001)
+export interface ChartCandle {
+  date: string      // YYYY-MM-DD
+  open: number
+  high: number
+  low: number
+  close: number
+  volume: number
+}
+
+// 차트 데이터 응답 형식
+export interface ChartData {
+  symbol: string
+  period: 'daily' | 'weekly'
+  candles: ChartCandle[]
+}
+
+// 차트 조회 기간 옵션
+export type ChartPeriod = '1M' | '3M' | '6M' | '1Y' | '5Y'
+
+// 차트 표시 타입
+export type ChartType = 'candlestick' | 'line'
