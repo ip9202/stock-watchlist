@@ -20,6 +20,11 @@
   - 거래량 비중 (30일 평균 대비)
   - 52주 최고가/최저가
   - 등락률/등락폭
+- **주가 차트 기능** (SPEC-CHART-001):
+  - 일봉(1M/3M/6M/1Y) 및 주봉(5Y) 차트
+  - 캔들스틱 및 라인 차트 전환
+  - 자동 페이지네이션 (최대 5회)
+  - 캐싱 최적화 (일봉 1시간, 주봉 1일 TTL)
 - Docker 컨테이너 기반 개발환경 구축
 - 애플리케이션 로고 제작 및 브랜딩 완료
 
@@ -30,8 +35,9 @@
 - **ORM**: Prisma 6.15.0
 - **Styling**: Tailwind CSS v4
 - **Stock Data API**: 키움증권 REST API (OAuth2 인증)
+- **Chart Library**: lightweight-charts v5.1.0 (TradingView OSS)
 - **Additional APIs**: 네이버 금융 API, DART API
-- **Testing**: Vitest + TypeScript (36 테스트)
+- **Testing**: Vitest + TypeScript (62 테스트)
 - **Containerization**: Docker + Docker Compose
 - **배포**: Railway (Docker 컨테이너)
 
