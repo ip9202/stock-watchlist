@@ -63,6 +63,15 @@ const mockWeeklyChartData = {
   ]
 }
 
+const mockMonthlyChartData = {
+  symbol: '005930',
+  period: 'monthly' as const,
+  candles: [
+    { date: '2023-12-01', open: 65000, high: 75000, low: 64000, close: 72000, volume: 220000000 },
+    { date: '2023-11-01', open: 62000, high: 67000, low: 61000, close: 65000, volume: 195000000 }
+  ]
+}
+
 describe('GET /api/stocks/[symbol]/chart (차트 데이터 조회 API)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -279,8 +288,16 @@ describe('GET /api/stocks/[symbol]/chart (차트 데이터 조회 API)', () => {
     })
   })
 
-  describe('유효성 검사', () => {
-    it('유효하지 않은 period 파라미터는 400을 반환해야 한다', async () => {
+  describe('period=monthly 조회 (SPEC-CHART-002)', () => {
+    it('period=monthly로 월봉 ChartData를 반환해야 한다', async () => {
+      // Arrange
+      vi.mocked(cache.get).mockReturnValue(null)
+
+      const mockAPIInstance = {
+        fetchChart: vi.fn().mockResolvedValue(mockMonthlyChartData)
+      }
+      vi.mocked(KiwoomStockAPI).mockImplementation(() => mockAPIInstance as any)
+
       // Act
       const { GET } = await import('../route')
       const request = new NextRequest('http://localhost/api/stocks/005930/chart?period=monthly')
@@ -288,9 +305,196 @@ describe('GET /api/stocks/[symbol]/chart (차트 데이터 조회 API)', () => {
       const json = await response.json()
 
       // Assert
+      expect(response.status).toBe(200)
+      expect(json.success).toBe(true)
+      expect(json.data.period).toBe('monthly')
+    })
+
+    it('monthly 조회 시 ka10083으로 fetchChart를 호출해야 한다', async () => {
+      // Arrange
+      vi.mocked(cache.get).mockReturnValue(null)
+
+      const mockAPIInstance = {
+        fetchChart: vi.fn().mockResolvedValue(mockMonthlyChartData)
+      }
+      vi.mocked(KiwoomStockAPI).mockImplementation(() => mockAPIInstance as any)
+
+      // Act
+      const { GET } = await import('../route')
+      const request = new NextRequest('http://localhost/api/stocks/005930/chart?period=monthly')
+      await GET(request, { params: Promise.resolve({ symbol: '005930' }) })
+
+      // Assert: 월봉은 ka10083 TR 코드 사용
+      expect(mockAPIInstance.fetchChart).toHaveBeenCalledWith(
+        '005930',
+        'ka10083',
+        expect.any(Object)
+      )
+    })
+
+    it('월봉 캐시 TTL은 86400000ms (1일)이어야 한다', async () => {
+      // Arrange
+      vi.mocked(cache.get).mockReturnValue(null)
+
+      const mockAPIInstance = {
+        fetchChart: vi.fn().mockResolvedValue(mockMonthlyChartData)
+      }
+      vi.mocked(KiwoomStockAPI).mockImplementation(() => mockAPIInstance as any)
+
+      // Act
+      const { GET } = await import('../route')
+      const request = new NextRequest('http://localhost/api/stocks/005930/chart?period=monthly')
+      await GET(request, { params: Promise.resolve({ symbol: '005930' }) })
+
+      // Assert: 월봉 TTL = 1일 = 86400000ms
+      expect(cache.set).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(Object),
+        86400000
+      )
+    })
+  })
+
+  describe('period=minute 조회 (SPEC-CHART-003)', () => {
+    const mockMinuteChartData = {
+      symbol: '005930',
+      period: 'minute' as const,
+      candles: [
+        { date: '2026-03-10T09:01:00', open: 71000, high: 71500, low: 70800, close: 71200, volume: 500000 },
+        { date: '2026-03-10T09:02:00', open: 71200, high: 71800, low: 71000, close: 71600, volume: 450000 },
+      ]
+    }
+
+    it('period=minute으로 분봉 ChartData를 반환해야 한다', async () => {
+      // Arrange
+      vi.mocked(cache.get).mockReturnValue(null)
+
+      const mockAPIInstance = {
+        fetchChart: vi.fn().mockResolvedValue(mockMinuteChartData)
+      }
+      vi.mocked(KiwoomStockAPI).mockImplementation(() => mockAPIInstance as any)
+
+      // Act
+      const { GET } = await import('../route')
+      const request = new NextRequest('http://localhost/api/stocks/005930/chart?period=minute&from=20260310&tic_scope=1')
+      const response = await GET(request, { params: Promise.resolve({ symbol: '005930' }) })
+      const json = await response.json()
+
+      // Assert
+      expect(response.status).toBe(200)
+      expect(json.success).toBe(true)
+      expect(json.data.period).toBe('minute')
+    })
+
+    it('minute 조회 시 ka10080으로 fetchChart를 호출해야 한다', async () => {
+      // Arrange
+      vi.mocked(cache.get).mockReturnValue(null)
+
+      const mockAPIInstance = {
+        fetchChart: vi.fn().mockResolvedValue(mockMinuteChartData)
+      }
+      vi.mocked(KiwoomStockAPI).mockImplementation(() => mockAPIInstance as any)
+
+      // Act
+      const { GET } = await import('../route')
+      const request = new NextRequest('http://localhost/api/stocks/005930/chart?period=minute&from=20260310&tic_scope=5')
+      await GET(request, { params: Promise.resolve({ symbol: '005930' }) })
+
+      // Assert: ka10080 TR 코드와 ticScope 파라미터 전달 확인
+      expect(mockAPIInstance.fetchChart).toHaveBeenCalledWith(
+        '005930',
+        'ka10080',
+        expect.objectContaining({ ticScope: '5' })
+      )
+    })
+
+    it('tic_scope가 없으면 기본값 "1"을 사용해야 한다', async () => {
+      // Arrange
+      vi.mocked(cache.get).mockReturnValue(null)
+
+      const mockAPIInstance = {
+        fetchChart: vi.fn().mockResolvedValue(mockMinuteChartData)
+      }
+      vi.mocked(KiwoomStockAPI).mockImplementation(() => mockAPIInstance as any)
+
+      // Act
+      const { GET } = await import('../route')
+      const request = new NextRequest('http://localhost/api/stocks/005930/chart?period=minute&from=20260310')
+      await GET(request, { params: Promise.resolve({ symbol: '005930' }) })
+
+      // Assert: 기본값 '1' 전달
+      expect(mockAPIInstance.fetchChart).toHaveBeenCalledWith(
+        '005930',
+        'ka10080',
+        expect.objectContaining({ ticScope: '1' })
+      )
+    })
+
+    it('유효하지 않은 tic_scope는 400을 반환해야 한다', async () => {
+      // Act
+      const { GET } = await import('../route')
+      const request = new NextRequest('http://localhost/api/stocks/005930/chart?period=minute&tic_scope=7')
+      const response = await GET(request, { params: Promise.resolve({ symbol: '005930' }) })
+      const json = await response.json()
+
+      // Assert
+      expect(response.status).toBe(400)
+      expect(json.success).toBe(false)
+    })
+
+    it('분봉 캐시 TTL은 300000ms (5분)이어야 한다', async () => {
+      // Arrange
+      vi.mocked(cache.get).mockReturnValue(null)
+
+      const mockAPIInstance = {
+        fetchChart: vi.fn().mockResolvedValue(mockMinuteChartData)
+      }
+      vi.mocked(KiwoomStockAPI).mockImplementation(() => mockAPIInstance as any)
+
+      // Act
+      const { GET } = await import('../route')
+      const request = new NextRequest('http://localhost/api/stocks/005930/chart?period=minute&from=20260310')
+      await GET(request, { params: Promise.resolve({ symbol: '005930' }) })
+
+      // Assert: TTL 5분 = 300000ms
+      expect(cache.set).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(Object),
+        300000
+      )
+    })
+  })
+
+  describe('유효성 검사', () => {
+    it('유효하지 않은 period 파라미터 (monthly가 아닌 다른 값)는 400을 반환해야 한다', async () => {
+      // Act
+      const { GET } = await import('../route')
+      const request = new NextRequest('http://localhost/api/stocks/005930/chart?period=invalid')
+      const response = await GET(request, { params: Promise.resolve({ symbol: '005930' }) })
+      const json = await response.json()
+
+      // Assert
       expect(response.status).toBe(400)
       expect(json.success).toBe(false)
       expect(json.error).toBeDefined()
+    })
+
+    it('monthly는 유효한 period 파라미터로 인식해야 한다', async () => {
+      // Arrange
+      vi.mocked(cache.get).mockReturnValue(null)
+
+      const mockAPIInstance = {
+        fetchChart: vi.fn().mockResolvedValue(mockMonthlyChartData)
+      }
+      vi.mocked(KiwoomStockAPI).mockImplementation(() => mockAPIInstance as any)
+
+      // Act
+      const { GET } = await import('../route')
+      const request = new NextRequest('http://localhost/api/stocks/005930/chart?period=monthly')
+      const response = await GET(request, { params: Promise.resolve({ symbol: '005930' }) })
+
+      // Assert: monthly는 400이 아닌 200 반환
+      expect(response.status).toBe(200)
     })
 
     it('period 파라미터 없이 요청하면 400을 반환해야 한다', async () => {

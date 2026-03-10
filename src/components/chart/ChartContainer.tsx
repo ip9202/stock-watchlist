@@ -8,20 +8,19 @@ import {
   createChart,
   IChartApi,
   ISeriesApi,
-  CandlestickData,
-  LineData,
   ColorType,
   SeriesType,
   CandlestickSeries,
   LineSeries,
 } from 'lightweight-charts'
-import { ChartCandle, ChartType } from '@/types/stock'
+import { ChartCandle } from '@/types/stock'
+import { toCandlestickData, toLineData } from './chart-data-utils'
 
 interface ChartContainerProps {
   // 렌더링할 캔들 데이터 배열
   candles: ChartCandle[]
   // 차트 표시 타입 (캔들스틱 또는 라인)
-  chartType: ChartType
+  chartType: 'candlestick' | 'line'
 }
 
 /**
@@ -37,28 +36,7 @@ export function ChartContainer({ candles, chartType }: ChartContainerProps) {
   // 현재 시리즈 ref (타입 전환 시 제거 후 재생성)
   const seriesRef = useRef<ISeriesApi<SeriesType> | null>(null)
   // 현재 chartType을 ref로 추적하여 변경 감지
-  const chartTypeRef = useRef<ChartType>(chartType)
-
-  // 캔들 데이터를 캔들스틱 형식으로 변환
-  const toCandlestickData = (data: ChartCandle[]): CandlestickData[] =>
-    data
-      .map((c) => ({
-        time: c.date as `${number}-${number}-${number}`,
-        open: c.open,
-        high: c.high,
-        low: c.low,
-        close: c.close,
-      }))
-      .sort((a, b) => (a.time > b.time ? 1 : -1))
-
-  // 캔들 데이터를 라인 차트 형식으로 변환 (종가 기준)
-  const toLineData = (data: ChartCandle[]): LineData[] =>
-    data
-      .map((c) => ({
-        time: c.date as `${number}-${number}-${number}`,
-        value: c.close,
-      }))
-      .sort((a, b) => (a.time > b.time ? 1 : -1))
+  const chartTypeRef = useRef<'candlestick' | 'line'>(chartType)
 
   // 차트 초기화 (마운트 시 1회)
   useEffect(() => {

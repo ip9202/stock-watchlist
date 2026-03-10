@@ -58,12 +58,17 @@ export interface ChartCandle {
 // 차트 데이터 응답 형식
 export interface ChartData {
   symbol: string
-  period: 'daily' | 'weekly'
+  period: 'daily' | 'weekly' | 'monthly' | 'minute'
   candles: ChartCandle[]
 }
 
-// 차트 조회 기간 옵션
-export type ChartPeriod = '1M' | '3M' | '6M' | '1Y' | '5Y'
+// 캔들 간격 옵션 (일봉/주봉/월봉) → 캔들차트로 표시
+export type CandleInterval = 'daily' | 'weekly' | 'monthly'
 
-// 차트 표시 타입
-export type ChartType = 'candlestick' | 'line'
+// 라인 차트 기간 옵션 → 라인차트(종가)로 표시
+export type LinePeriod = '1D' | '3M' | '1Y' | '3Y' | '10Y'
+
+// 차트 모드: 봉 타입 또는 기간 (상호 배타적 선택)
+export type ChartMode =
+  | { type: 'candle'; interval: CandleInterval }
+  | { type: 'line'; period: LinePeriod }

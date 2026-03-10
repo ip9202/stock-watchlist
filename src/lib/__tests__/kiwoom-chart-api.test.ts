@@ -290,6 +290,83 @@ describe('KiwoomStockAPI - fetchChart()', () => {
     })
   })
 
+  describe('분봉 차트 조회 (ka10080) - SPEC-CHART-003', () => {
+    it('분봉 차트 데이터를 성공적으로 조회해야 한다', async () => {
+      // Arrange: 분봉 응답 (dt 형식: YYYYMMDDHHMMSS)
+      const mockResponse = {
+        data: {
+          stk_dt_pole_chart_qry: [
+            { dt: '20260310090100', open_pric: '71000', high_pric: '71500', low_pric: '70800', cur_prc: '71200', trde_qty: '500000' },
+            { dt: '20260310090200', open_pric: '71200', high_pric: '71800', low_pric: '71000', cur_prc: '71600', trde_qty: '450000' },
+          ]
+        },
+        headers: { 'cont-yn': 'N', 'next-key': '' }
+      }
+      vi.mocked(axios.post).mockResolvedValueOnce(mockResponse)
+
+      // Act
+      const result = await stockAPI.fetchChart('005930', 'ka10080', { from: '20260310', ticScope: '1' })
+
+      // Assert
+      expect(result.symbol).toBe('005930')
+      expect(result.period).toBe('minute')
+      expect(result.candles).toHaveLength(2)
+    })
+
+    it('ka10080으로 API를 호출하고 tic_scope 파라미터를 포함해야 한다', async () => {
+      // Arrange
+      const mockResponse = {
+        data: { stk_dt_pole_chart_qry: [{ dt: '20260310090100', open_pric: '71000', high_pric: '71500', low_pric: '70800', cur_prc: '71200', trde_qty: '500000' }] },
+        headers: { 'cont-yn': 'N', 'next-key': '' }
+      }
+      vi.mocked(axios.post).mockResolvedValueOnce(mockResponse)
+
+      // Act
+      await stockAPI.fetchChart('005930', 'ka10080', { from: '20260310', ticScope: '5' })
+
+      // Assert: api-id 헤더와 tic_scope 본문 확인
+      expect(axios.post).toHaveBeenCalledWith(
+        'https://api.kiwoom.com/api/dostk/chart',
+        expect.objectContaining({ tic_scope: '5' }),
+        expect.objectContaining({
+          headers: expect.objectContaining({ 'api-id': 'ka10080' })
+        })
+      )
+    })
+
+    it('분봉 dt(YYYYMMDDHHMMSS)가 ISO 날짜시간 문자열로 변환되어야 한다', async () => {
+      // Arrange
+      const mockResponse = {
+        data: {
+          stk_dt_pole_chart_qry: [
+            { dt: '20260310090100', open_pric: '71000', high_pric: '71500', low_pric: '70800', cur_prc: '71200', trde_qty: '500000' }
+          ]
+        },
+        headers: { 'cont-yn': 'N', 'next-key': '' }
+      }
+      vi.mocked(axios.post).mockResolvedValueOnce(mockResponse)
+
+      // Act
+      const result = await stockAPI.fetchChart('005930', 'ka10080', { from: '20260310', ticScope: '1' })
+
+      // Assert: ISO 형식으로 변환 (YYYY-MM-DDTHH:MM:SS)
+      expect(result.candles[0].date).toBe('2026-03-10T09:01:00')
+    })
+
+    it('ticScope 미전달 시 tic_scope를 요청 본문에 포함하지 않아야 한다', async () => {
+      // Arrange: 일봉 요청 (ticScope 없음)
+      const mockResponse = createDailyChartResponse([{ dt: '20240101' }])
+      vi.mocked(axios.post).mockResolvedValueOnce(mockResponse)
+
+      // Act
+      await stockAPI.fetchChart('005930', 'ka10081', { from: '20240101' })
+
+      // Assert: tic_scope가 요청 본문에 없어야 함
+      const requestBody = vi.mocked(axios.post).mock.calls[0][1] as Record<string, string>
+      expect(requestBody).not.toHaveProperty('tic_scope')
+    })
+  })
+
   describe('에러 처리', () => {
     it('API 오류 응답 시 예외를 발생시켜야 한다', async () => {
       // Arrange

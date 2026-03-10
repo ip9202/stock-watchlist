@@ -229,10 +229,16 @@ export class KiwoomStockAPI {
   async fetchChart(
     symbol: string,
     apiId: string,
-    params: { from?: string; to?: string; reqCnt?: string }
+    params: { from?: string; to?: string; reqCnt?: string; ticScope?: string }
   ): Promise<ChartData> {
-    // 기간 매핑: ka10081 → daily, ka10082 → weekly
-    const period: 'daily' | 'weekly' = apiId === 'ka10082' ? 'weekly' : 'daily'
+    // 기간 매핑: ka10081 → daily, ka10082 → weekly, ka10083 → monthly, ka10080 → minute
+    const periodMap: Record<string, 'daily' | 'weekly' | 'monthly' | 'minute'> = {
+      ka10081: 'daily',
+      ka10082: 'weekly',
+      ka10083: 'monthly',
+      ka10080: 'minute',
+    }
+    const period = periodMap[apiId] ?? 'daily'
 
     const allCandles: ChartCandle[] = []
     let contYn = 'Y'
@@ -248,6 +254,8 @@ export class KiwoomStockAPI {
         upd_stkpc_tp: '1',
         req_cnt: params.reqCnt || '100'
       }
+      // 분봉(ka10080) 요청 시 tic_scope 파라미터 추가
+      if (params.ticScope) requestBody['tic_scope'] = params.ticScope
       // 페이지네이션: 두 번째 요청부터 next_key 포함
       if (nextKey) requestBody['next_key'] = nextKey
 
@@ -293,11 +301,26 @@ export class KiwoomStockAPI {
    * @MX:NOTE: parseSignedNumber 미사용 - 차트 가격은 절대값, 부호 처리 불필요
    */
   private transformChartCandle(item: KiwoomChartCandleItem): ChartCandle {
-    // 날짜 변환: YYYYMMDD → YYYY-MM-DD
+    // 날짜 변환:
+    // - 8자리(YYYYMMDD) → YYYY-MM-DD (일봉/주봉/월봉)
+    // - 12~14자리(YYYYMMDDHHMMSS) → YYYY-MM-DDTHH:MM:SS (분봉)
     const rawDate = item.dt || ''
-    const date = rawDate.length === 8
-      ? `${rawDate.slice(0, 4)}-${rawDate.slice(4, 6)}-${rawDate.slice(6, 8)}`
-      : rawDate
+    let date: string
+    if (rawDate.length === 8) {
+      // 일봉/주봉/월봉: YYYYMMDD → YYYY-MM-DD
+      date = `${rawDate.slice(0, 4)}-${rawDate.slice(4, 6)}-${rawDate.slice(6, 8)}`
+    } else if (rawDate.length >= 12) {
+      // 분봉: YYYYMMDDHHMMSS → YYYY-MM-DDTHH:MM:SS (ISO 형식)
+      const y = rawDate.slice(0, 4)
+      const mo = rawDate.slice(4, 6)
+      const d = rawDate.slice(6, 8)
+      const h = rawDate.slice(8, 10)
+      const mi = rawDate.slice(10, 12)
+      const s = rawDate.length >= 14 ? rawDate.slice(12, 14) : '00'
+      date = `${y}-${mo}-${d}T${h}:${mi}:${s}`
+    } else {
+      date = rawDate
+    }
 
     return {
       date,
