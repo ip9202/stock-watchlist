@@ -30,70 +30,74 @@ const fetcher = (url: string) =>
 
 /**
  * ChartMode에서 API 요청 파라미터를 계산하는 함수
- * - candle 모드: interval → API period, 기본 3개월 기간
- * - line 모드: 1D → minute(분봉), 나머지 → daily interval + fromDate 계산
+ * - candle 모드: interval → API period, 기본 기간 설정
+ * - line 모드: 1D → minute(분봉), 3M/1Y → daily, 3Y → weekly, 10Y → monthly
  * @MX:ANCHOR: SWR URL 생성의 핵심 함수 - mode/period 추가 시 여기를 수정
  * @MX:REASON: ChartMode, StockChart, StockChart 테스트 3곳에서 참조됨
  */
 export function getApiParams(mode: ChartMode): {
   apiPeriod: string
   fromDate: string
+  toDate: string
   ticScope?: string
 } {
   const now = new Date()
+  const toDate = now.toISOString().slice(0, 10).replace(/-/g, '')
   const from = new Date(now)
 
   if (mode.type === 'candle') {
     // 봉 타입별 기본 조회 기간 설정
-    // 캔들 1개만 표시하면 의미가 없으므로 적절한 기본 기간 사용
     switch (mode.interval) {
       case 'daily':
-        // 일봉: 최근 3개월 (약 60 영업일)
+        // 일봉: 최근 3개월 (약 60 영업일, ka10081)
         from.setMonth(from.getMonth() - 3)
         break
       case 'weekly':
-        // 주봉: 최근 1년 (약 52주)
+        // 주봉: 최근 1년 (약 52주, ka10082)
         from.setFullYear(from.getFullYear() - 1)
         break
       case 'monthly':
-        // 월봉: 최근 3년 (36개월)
+        // 월봉: 최근 3년 (36개월, ka10083)
         from.setFullYear(from.getFullYear() - 3)
         break
     }
     return {
       apiPeriod: mode.interval,
       fromDate: from.toISOString().slice(0, 10).replace(/-/g, ''),
+      toDate,
     }
   }
 
-  // 기간 선택 (라인차트): 1D → 분봉(ka10080), 나머지 → 일봉(ka10081) 종가 라인
+  // 기간 선택 (라인차트): 1D → 분봉(ka10080)
+  // 장외 시간(09:00 이전, 15:30 이후)이나 주말에도 최근 거래일 데이터를 보여주기 위해
+  // fromDate를 5일 전으로 설정 (주말 + 공휴일 대비)
+  // fetchChart에서 가장 최근 거래일 데이터만 필터링하여 반환
   if (mode.period === '1D') {
-    // 1일: 분봉 API(ka10080)로 장중 가격 변동 표시 (SPEC-CHART-003)
+    const from1D = new Date(now)
+    from1D.setDate(from1D.getDate() - 5)
     return {
       apiPeriod: 'minute',
-      fromDate: now.toISOString().slice(0, 10).replace(/-/g, ''),
+      fromDate: from1D.toISOString().slice(0, 10).replace(/-/g, ''),
+      toDate,
       ticScope: '1',
     }
   }
 
+  // 기간별 적절한 API 해상도 선택
+  // 3M/1Y → daily, 3Y → weekly, 10Y → monthly
   switch (mode.period) {
     case '3M':
       from.setMonth(from.getMonth() - 3)
-      break
+      return { apiPeriod: 'daily', fromDate: from.toISOString().slice(0, 10).replace(/-/g, ''), toDate }
     case '1Y':
       from.setFullYear(from.getFullYear() - 1)
-      break
+      return { apiPeriod: 'daily', fromDate: from.toISOString().slice(0, 10).replace(/-/g, ''), toDate }
     case '3Y':
       from.setFullYear(from.getFullYear() - 3)
-      break
+      return { apiPeriod: 'weekly', fromDate: from.toISOString().slice(0, 10).replace(/-/g, ''), toDate }
     case '10Y':
       from.setFullYear(from.getFullYear() - 10)
-      break
-  }
-
-  return {
-    apiPeriod: 'daily',
-    fromDate: from.toISOString().slice(0, 10).replace(/-/g, ''),
+      return { apiPeriod: 'monthly', fromDate: from.toISOString().slice(0, 10).replace(/-/g, ''), toDate }
   }
 }
 
@@ -112,14 +116,14 @@ export function StockChart({ symbol }: StockChartProps) {
   // 차트 모드 (기본값: 일봉 캔들차트)
   const [mode, setMode] = useState<ChartMode>({ type: 'candle', interval: 'daily' })
 
-  const { apiPeriod, fromDate, ticScope } = getApiParams(mode)
+  const { apiPeriod, fromDate, toDate, ticScope } = getApiParams(mode)
   // 차트 표시 타입은 모드에서 자동 결정
   const chartType = mode.type === 'candle' ? 'candlestick' : 'line'
 
-  // 분봉(minute) 요청 시 tic_scope 쿼리 파라미터 추가
+  // API URL 구성: from(시작일) + to(종료일=오늘) + period + tic_scope(분봉 전용)
   const chartUrl = ticScope
-    ? `/api/stocks/${symbol}/chart?period=${apiPeriod}&from=${fromDate}&tic_scope=${ticScope}`
-    : `/api/stocks/${symbol}/chart?period=${apiPeriod}&from=${fromDate}`
+    ? `/api/stocks/${symbol}/chart?period=${apiPeriod}&from=${fromDate}&to=${toDate}&tic_scope=${ticScope}`
+    : `/api/stocks/${symbol}/chart?period=${apiPeriod}&from=${fromDate}&to=${toDate}`
 
   // 차트 데이터 SWR 페칭
   const { data, error, isLoading, mutate } = useSWR<{

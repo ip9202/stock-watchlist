@@ -87,22 +87,25 @@ interface KiwoomStockDetailResponse {
   trde_pre?: string    // 거래량 전일비율 (+/- 부호 포함)
 }
 
-// ka10081/ka10082 차트 응답: 개별 캔들 데이터
+// 차트 응답: 개별 캔들 데이터 (일봉/주봉/월봉: dt, 분봉: cntr_tm)
 interface KiwoomChartCandleItem {
-  dt?: string         // 날짜 (YYYYMMDD)
-  open_pric?: string  // 시가
-  high_pric?: string  // 고가
-  low_pric?: string   // 저가
-  cur_prc?: string    // 종가 (현재가)
+  dt?: string         // 날짜 (YYYYMMDD, 일봉/주봉/월봉)
+  cntr_tm?: string    // 체결시간 (YYYYMMDDHHMMSS, 분봉 전용)
+  open_pric?: string  // 시가 (분봉은 부호 포함)
+  high_pric?: string  // 고가 (분봉은 부호 포함)
+  low_pric?: string   // 저가 (분봉은 부호 포함)
+  cur_prc?: string    // 종가/현재가 (분봉은 부호 포함)
   trde_qty?: string   // 거래량
 }
 
-// ka10081/ka10082 차트 응답
+// 차트 응답 (API별 응답 배열 키가 다름)
+// ka10080: 분봉(키 미확인), ka10081: stk_dt_pole_chart_qry, ka10082: stk_stk_pole_chart_qry, ka10083: stk_mth_pole_chart_qry
+// 패턴: stk_*_pole_chart_qry
 interface KiwoomChartResponse {
   return_code?: number
   return_msg?: string
   stk_cd?: string
-  stk_dt_pole_chart_qry?: KiwoomChartCandleItem[]
+  [key: string]: unknown
 }
 
 export class KiwoomStockAPI {
@@ -224,12 +227,12 @@ export class KiwoomStockAPI {
    * TR: ka10081(일봉), ka10082(주봉)
    * @param symbol - 종목코드
    * @param apiId - TR ID (ka10081: 일봉, ka10082: 주봉)
-   * @param params - 조회 파라미터 (from, to, reqCnt)
+   * @param params - 조회 파라미터 (from, to, ticScope)
    */
   async fetchChart(
     symbol: string,
     apiId: string,
-    params: { from?: string; to?: string; reqCnt?: string; ticScope?: string }
+    params: { from?: string; to?: string; ticScope?: string }
   ): Promise<ChartData> {
     // 기간 매핑: ka10081 → daily, ka10082 → weekly, ka10083 → monthly, ka10080 → minute
     const periodMap: Record<string, 'daily' | 'weekly' | 'monthly' | 'minute'> = {
@@ -247,25 +250,30 @@ export class KiwoomStockAPI {
 
     // 첫 번째 페이지 요청 시 requestWithTokenRetry로 [8005] 에러 처리 (Task 4)
     while (contYn === 'Y' && pageCount < CHART_MAX_PAGES) {
-      // 요청 본문 구성 (base_dt, upd_stkpc_tp는 키움 차트 API 필수 파라미터)
+      // 요청 본문 구성 (키움 차트 API 필수: stk_cd, base_dt, upd_stkpc_tp)
+      // base_dt는 조회 기준일 (이 날짜부터 과거 방향으로 데이터 반환)
       const requestBody: Record<string, string> = {
         stk_cd: symbol,
-        base_dt: params.from || new Date().toISOString().slice(0, 10).replace(/-/g, ''),
+        base_dt: params.to || new Date().toISOString().slice(0, 10).replace(/-/g, ''),
         upd_stkpc_tp: '1',
-        req_cnt: params.reqCnt || '100'
       }
       // 분봉(ka10080) 요청 시 tic_scope 파라미터 추가
       if (params.ticScope) requestBody['tic_scope'] = params.ticScope
-      // 페이지네이션: 두 번째 요청부터 next_key 포함
-      if (nextKey) requestBody['next_key'] = nextKey
 
       const currentBody = { ...requestBody }
+      // 키움 차트 API는 cont-yn, next-key 헤더 필수 (첫 요청: N/'', 연속: Y/키값)
+      const currentContYn = pageCount === 0 ? 'N' : 'Y'
+      const currentNextKey = nextKey
       const response = await this.requestWithTokenRetry(async (token) =>
         axios.post(
           CHART_ENDPOINT,
           currentBody,
           {
-            headers: this.createHeaders(token, apiId),
+            headers: {
+              ...this.createHeaders(token, apiId),
+              'cont-yn': currentContYn,
+              'next-key': currentNextKey,
+            },
             timeout: REQUEST_TIMEOUT
           }
         )
@@ -277,10 +285,18 @@ export class KiwoomStockAPI {
         throw new Error(`차트 데이터 조회 실패: ${result.return_msg || '알 수 없는 에러'}`)
       }
 
-      // 캔들 데이터 변환 (실제 응답: stk_dt_pole_chart_qry 배열)
-      const outputList: KiwoomChartCandleItem[] = result.stk_dt_pole_chart_qry || []
+      // 캔들 데이터 변환: API별 응답 배열 키가 다름 (stk_*_pole_chart_qry 패턴)
+      // ka10081: stk_dt_pole_chart_qry, ka10082: stk_stk_pole_chart_qry, ka10083: stk_mth_pole_chart_qry
+      // 동적 탐색으로 모든 TR에 대응 (분봉 등 미확인 키 포함)
+      const outputList: KiwoomChartCandleItem[] = this.extractChartCandles(result)
       const candles = outputList.map(item => this.transformChartCandle(item))
       allCandles.push(...candles)
+
+      // from 날짜 기반 페이지네이션 중단: 가장 오래된 데이터가 from 이전이면 중단
+      if (params.from && candles.length > 0) {
+        const oldestDate = candles[candles.length - 1].date.replace(/[-T:]/g, '').slice(0, 8)
+        if (oldestDate <= params.from) break
+      }
 
       // 페이지네이션 헤더 확인
       const responseHeaders = response.headers || {}
@@ -289,22 +305,65 @@ export class KiwoomStockAPI {
       pageCount++
     }
 
+    // from 날짜 이전 데이터 필터링 (캔들 날짜 >= from)
+    const filteredCandles = params.from
+      ? allCandles.filter(c => {
+          const candleDate = c.date.replace(/[-T:]/g, '').slice(0, 8)
+          return candleDate >= params.from!
+        })
+      : allCandles
+
+    // 분봉(minute) 데이터: 가장 최근 거래일 데이터만 유지
+    // 장외 시간(09:00 이전, 15:30 이후)이나 주말에도 직전 거래일 차트를 볼 수 있도록
+    const resultCandles = period === 'minute' && filteredCandles.length > 0
+      ? this.filterLatestTradingDay(filteredCandles)
+      : filteredCandles
+
     return {
       symbol,
       period,
-      candles: allCandles
+      candles: resultCandles
     }
   }
 
   /**
+   * 분봉 데이터에서 가장 최근 거래일 데이터만 추출
+   * 장외 시간이나 주말에도 직전 거래일 차트를 볼 수 있도록
+   * 날짜 부분(YYYY-MM-DD)을 비교하여 가장 최근 날짜만 유지
+   */
+  private filterLatestTradingDay(candles: ChartCandle[]): ChartCandle[] {
+    // 가장 최근 날짜 찾기 (캔들은 시간순 또는 역시간순일 수 있음)
+    let latestDate = ''
+    for (const c of candles) {
+      const dateOnly = c.date.slice(0, 10) // YYYY-MM-DD 또는 YYYY-MM-DDTHH:MM:SS → YYYY-MM-DD
+      if (dateOnly > latestDate) latestDate = dateOnly
+    }
+    // 해당 날짜의 데이터만 필터링
+    return candles.filter(c => c.date.slice(0, 10) === latestDate)
+  }
+
+  /**
+   * 응답에서 캔들 배열을 추출 (API별 응답 키가 다름)
+   * ka10080: stk_min_pole_chart_qry, ka10081: stk_dt_pole_chart_qry
+   * ka10082: stk_stk_pole_chart_qry, ka10083: stk_mth_pole_chart_qry
+   * 패턴: stk_*_pole_chart_qry 키를 동적 탐색
+   */
+  private extractChartCandles(result: KiwoomChartResponse): KiwoomChartCandleItem[] {
+    for (const key of Object.keys(result)) {
+      if (key.endsWith('_pole_chart_qry') && Array.isArray(result[key])) {
+        return result[key] as KiwoomChartCandleItem[]
+      }
+    }
+    return []
+  }
+
+  /**
    * 차트 캔들 데이터 변환
-   * @MX:NOTE: parseSignedNumber 미사용 - 차트 가격은 절대값, 부호 처리 불필요
+   * @MX:NOTE: 분봉은 cntr_tm 필드 + 부호 포함 가격, 일봉/주봉/월봉은 dt 필드 + 절대값 가격
    */
   private transformChartCandle(item: KiwoomChartCandleItem): ChartCandle {
-    // 날짜 변환:
-    // - 8자리(YYYYMMDD) → YYYY-MM-DD (일봉/주봉/월봉)
-    // - 12~14자리(YYYYMMDDHHMMSS) → YYYY-MM-DDTHH:MM:SS (분봉)
-    const rawDate = item.dt || ''
+    // 날짜/시간 필드: 일봉/주봉/월봉은 dt, 분봉은 cntr_tm
+    const rawDate = item.cntr_tm || item.dt || ''
     let date: string
     if (rawDate.length === 8) {
       // 일봉/주봉/월봉: YYYYMMDD → YYYY-MM-DD
@@ -322,12 +381,14 @@ export class KiwoomStockAPI {
       date = rawDate
     }
 
+    // 가격 파싱: 분봉은 부호 포함("-78800"), 일봉/주봉/월봉은 절대값
+    // parseSignedNumber로 통일 (절대값 반환)
     return {
       date,
-      open: this.parseNumber(item.open_pric) ?? 0,
-      high: this.parseNumber(item.high_pric) ?? 0,
-      low: this.parseNumber(item.low_pric) ?? 0,
-      close: this.parseNumber(item.cur_prc) ?? 0,
+      open: this.parseSignedNumber(item.open_pric) ?? 0,
+      high: this.parseSignedNumber(item.high_pric) ?? 0,
+      low: this.parseSignedNumber(item.low_pric) ?? 0,
+      close: this.parseSignedNumber(item.cur_prc) ?? 0,
       volume: this.parseNumber(item.trde_qty) ?? 0
     }
   }

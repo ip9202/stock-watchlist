@@ -246,9 +246,11 @@ describe('KiwoomStockAPI - fetchChart()', () => {
       // Act
       await stockAPI.fetchChart('005930', 'ka10081', {})
 
-      // Assert: 두 번째 호출 시 next-key 포함 확인
+      // Assert: 두 번째 호출 시 next-key 헤더 포함 확인
       const secondCall = vi.mocked(axios.post).mock.calls[1]
-      expect(secondCall[1]).toHaveProperty('next_key', 'NEXT_KEY_001')
+      const secondHeaders = secondCall[2]?.headers as Record<string, string>
+      expect(secondHeaders['next-key']).toBe('NEXT_KEY_001')
+      expect(secondHeaders['cont-yn']).toBe('Y')
     })
 
     it('최대 5페이지까지만 조회해야 한다', async () => {

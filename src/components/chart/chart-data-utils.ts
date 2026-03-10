@@ -8,8 +8,16 @@ import { ChartCandle } from '@/types/stock'
  */
 function toChartTime(date: string): `${number}-${number}-${number}` | UTCTimestamp {
   if (date.includes('T')) {
-    // 분봉: ISO 날짜시간 문자열 → UTCTimestamp (초 단위)
-    return Math.floor(new Date(date).getTime() / 1000) as UTCTimestamp
+    // 분봉: 날짜 부분을 직접 파싱하여 Date.UTC()로 변환
+    // new Date(date).getTime() 사용 시 로컬 타임존 → UTC 변환되어
+    // KST 09:00이 UTC 00:00으로 표시되는 문제 방지
+    const y = parseInt(date.slice(0, 4))
+    const mo = parseInt(date.slice(5, 7)) - 1
+    const d = parseInt(date.slice(8, 10))
+    const h = parseInt(date.slice(11, 13))
+    const mi = parseInt(date.slice(14, 16))
+    const s = date.length >= 19 ? parseInt(date.slice(17, 19)) : 0
+    return Math.floor(Date.UTC(y, mo, d, h, mi, s) / 1000) as UTCTimestamp
   }
   // 일봉/주봉/월봉: BusinessDay 형식 유지
   return date as `${number}-${number}-${number}`
