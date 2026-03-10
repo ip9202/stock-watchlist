@@ -23,25 +23,3 @@ export function Loading({ className, size = "md" }: LoadingProps) {
   )
 }
 
-export function LoadingPage() {
-  return (
-    <div className="flex h-screen items-center justify-center">
-      <div className="text-center">
-        <Loading size="lg" className="mx-auto mb-4" />
-        <p className="text-gray-500">로딩 중...</p>
-      </div>
-    </div>
-  )
-}
-
-export function LoadingCard() {
-  return (
-    <div className="animate-pulse rounded-lg border bg-card p-6 shadow-sm">
-      <div className="space-y-3">
-        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-        <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-        <div className="h-3 bg-gray-200 rounded w-2/3"></div>
-      </div>
-    </div>
-  )
-}

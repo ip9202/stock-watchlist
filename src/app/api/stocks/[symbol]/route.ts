@@ -30,14 +30,11 @@ export async function GET(
     // 캐시된 데이터 확인 (30초 TTL)
     const cachedData = cache.get(cacheKey)
     if (cachedData) {
-      console.log(`Cache HIT for ${symbol}`)
       return NextResponse.json<ApiResponse<StockInfo>>({
         success: true,
         data: cachedData
       })
     }
-
-    console.log(`Cache MISS for ${symbol} - fetching from Kiwoom REST API`)
 
     // Kiwoom REST API에서 종목 시세 조회
     const stockAPI = new KiwoomStockAPI()
@@ -48,7 +45,6 @@ export async function GET(
 
     // 캐시에 저장 (30초 TTL)
     cache.set(cacheKey, stockInfo, CACHE_TTL_STOCK_DETAIL)
-    console.log(`Cached ${symbol} for ${CACHE_TTL_STOCK_DETAIL} seconds`)
 
     return NextResponse.json<ApiResponse<StockInfo>>({
       success: true,

@@ -8,20 +8,20 @@ import { promisify } from 'util'
 
 const execAsync = promisify(exec)
 
-export interface PythonExecutionOptions {
+interface PythonExecutionOptions {
   scriptPath: string
   args?: string[]
   timeout?: number
   cwd?: string
 }
 
-export interface ExecutionResult {
+interface ExecutionResult {
   success: boolean
   output: string
   error?: string
 }
 
-export function createPythonCommand(options: PythonExecutionOptions): string {
+function createPythonCommand(options: PythonExecutionOptions): string {
   const { scriptPath, args = [] } = options
   const isProd = process.env.NODE_ENV === 'production'
   const isDev = process.env.NODE_ENV === 'development'

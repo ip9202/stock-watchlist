@@ -147,10 +147,8 @@ export default function StockPage({ params }: StockPageProps) {
             })
             
             const deleteResult = await deleteResponse.json()
-            console.log('Delete result:', deleteResult)
             if (deleteResult.success) {
               setIsInWatchlist(false)
-              console.log('Redirecting to home page...')
               // 관심종목에서 삭제 성공 시 메인페이지로 이동
               window.location.href = '/'
               return

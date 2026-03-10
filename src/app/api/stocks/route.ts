@@ -62,11 +62,8 @@ async function getAllStocks(): Promise<Array<{ symbol: string; name: string; mar
   // 캐시 확인
   const cachedData = cache.get(CACHE_KEY_ALL_STOCKS)
   if (cachedData) {
-    console.log('Cache HIT for all stocks list')
     return cachedData
   }
-
-  console.log('Cache MISS for all stocks list - fetching from Kiwoom REST API')
 
   // Kiwoom REST API에서 종목 리스트 조회
   const stockAPI = new KiwoomStockAPI()
@@ -74,7 +71,6 @@ async function getAllStocks(): Promise<Array<{ symbol: string; name: string; mar
 
   // 캐시에 저장 (7일 TTL)
   cache.set(CACHE_KEY_ALL_STOCKS, allStocks, CACHE_TTL_ALL_STOCKS)
-  console.log(`Cached all stocks list for ${CACHE_TTL_ALL_STOCKS} seconds`)
 
   return allStocks
 }
