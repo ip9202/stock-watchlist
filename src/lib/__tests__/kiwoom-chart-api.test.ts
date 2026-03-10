@@ -33,24 +33,24 @@ vi.mock('../kiwoom-token-manager', () => {
 
 import axios from 'axios'
 
-// 차트 API 응답 헬퍼: 일봉 데이터 생성
+// 차트 API 응답 헬퍼: 일봉 데이터 생성 (실제 키움 API 응답 구조)
 function createDailyChartResponse(candles: Array<{
   dt?: string
-  opnprc?: string
-  hgprc?: string
-  lwprc?: string
-  clsprc?: string
+  open_pric?: string
+  high_pric?: string
+  low_pric?: string
+  cur_prc?: string
   trde_qty?: string
 }>, contYn = 'N', nextKey = '') {
   return {
     data: {
       return_code: 0,
-      output: candles.map(c => ({
+      stk_dt_pole_chart_qry: candles.map(c => ({
         dt: c.dt || '20240101',
-        opnprc: c.opnprc || '70000',
-        hgprc: c.hgprc || '72000',
-        lwprc: c.lwprc || '69000',
-        clsprc: c.clsprc || '71000',
+        open_pric: c.open_pric || '70000',
+        high_pric: c.high_pric || '72000',
+        low_pric: c.low_pric || '69000',
+        cur_prc: c.cur_prc || '71000',
         trde_qty: c.trde_qty || '10000000'
       }))
     },
@@ -89,9 +89,9 @@ describe('KiwoomStockAPI - fetchChart()', () => {
     it('일봉 차트 데이터를 성공적으로 조회해야 한다', async () => {
       // Arrange
       const mockResponse = createDailyChartResponse([
-        { dt: '20240103', opnprc: '71500', hgprc: '73000', lwprc: '71000', clsprc: '72000', trde_qty: '12000000' },
-        { dt: '20240102', opnprc: '70000', hgprc: '72000', lwprc: '69500', clsprc: '71500', trde_qty: '11000000' },
-        { dt: '20240101', opnprc: '69000', hgprc: '70500', lwprc: '68500', clsprc: '70000', trde_qty: '10000000' }
+        { dt: '20240103', open_pric: '71500', high_pric: '73000', low_pric: '71000', cur_prc: '72000', trde_qty: '12000000' },
+        { dt: '20240102', open_pric: '70000', high_pric: '72000', low_pric: '69500', cur_prc: '71500', trde_qty: '11000000' },
+        { dt: '20240101', open_pric: '69000', high_pric: '70500', low_pric: '68500', cur_prc: '70000', trde_qty: '10000000' }
       ])
       vi.mocked(axios.post).mockResolvedValueOnce(mockResponse)
 
@@ -120,7 +120,7 @@ describe('KiwoomStockAPI - fetchChart()', () => {
     it('ka10081로 API를 호출해야 한다', async () => {
       // Arrange
       const mockResponse = createDailyChartResponse([
-        { dt: '20240101', opnprc: '69000', hgprc: '70500', lwprc: '68500', clsprc: '70000', trde_qty: '10000000' }
+        { dt: '20240101', open_pric: '69000', high_pric: '70500', low_pric: '68500', cur_prc: '70000', trde_qty: '10000000' }
       ])
       vi.mocked(axios.post).mockResolvedValueOnce(mockResponse)
 
@@ -143,7 +143,7 @@ describe('KiwoomStockAPI - fetchChart()', () => {
     it('캔들 데이터 숫자값이 올바르게 파싱되어야 한다', async () => {
       // Arrange: 가격 데이터 검증
       const mockResponse = createDailyChartResponse([
-        { dt: '20240103', opnprc: '71500', hgprc: '73000', lwprc: '71000', clsprc: '72000', trde_qty: '12000000' }
+        { dt: '20240103', open_pric: '71500', high_pric: '73000', low_pric: '71000', cur_prc: '72000', trde_qty: '12000000' }
       ])
       vi.mocked(axios.post).mockResolvedValueOnce(mockResponse)
 
@@ -165,8 +165,8 @@ describe('KiwoomStockAPI - fetchChart()', () => {
     it('주봉 차트 데이터를 성공적으로 조회해야 한다', async () => {
       // Arrange
       const mockResponse = createDailyChartResponse([
-        { dt: '20231229', opnprc: '68000', hgprc: '72000', lwprc: '67500', clsprc: '71000', trde_qty: '55000000' },
-        { dt: '20231222', opnprc: '65000', hgprc: '69000', lwprc: '64500', clsprc: '68000', trde_qty: '48000000' }
+        { dt: '20231229', open_pric: '68000', high_pric: '72000', low_pric: '67500', cur_prc: '71000', trde_qty: '55000000' },
+        { dt: '20231222', open_pric: '65000', high_pric: '69000', low_pric: '64500', cur_prc: '68000', trde_qty: '48000000' }
       ])
       vi.mocked(axios.post).mockResolvedValueOnce(mockResponse)
 
@@ -181,7 +181,7 @@ describe('KiwoomStockAPI - fetchChart()', () => {
     it('ka10082로 API를 호출해야 한다', async () => {
       // Arrange
       const mockResponse = createDailyChartResponse([
-        { dt: '20231229', opnprc: '68000', hgprc: '72000', lwprc: '67500', clsprc: '71000', trde_qty: '55000000' }
+        { dt: '20231229', open_pric: '68000', high_pric: '72000', low_pric: '67500', cur_prc: '71000', trde_qty: '55000000' }
       ])
       vi.mocked(axios.post).mockResolvedValueOnce(mockResponse)
 
@@ -205,13 +205,13 @@ describe('KiwoomStockAPI - fetchChart()', () => {
     it('cont-yn이 Y이면 next-key로 다음 페이지를 자동으로 조회해야 한다', async () => {
       // Arrange: 첫 번째 응답 - cont-yn: Y (다음 페이지 있음)
       const page1Response = createDailyChartResponse(
-        [{ dt: '20240103', opnprc: '71500', hgprc: '73000', lwprc: '71000', clsprc: '72000', trde_qty: '12000000' }],
+        [{ dt: '20240103', open_pric: '71500', high_pric: '73000', low_pric: '71000', cur_prc: '72000', trde_qty: '12000000' }],
         'Y',
         'NEXT_KEY_001'
       )
       // 두 번째 응답 - cont-yn: N (마지막 페이지)
       const page2Response = createDailyChartResponse(
-        [{ dt: '20240102', opnprc: '70000', hgprc: '72000', lwprc: '69500', clsprc: '71500', trde_qty: '11000000' }],
+        [{ dt: '20240102', open_pric: '70000', high_pric: '72000', low_pric: '69500', cur_prc: '71500', trde_qty: '11000000' }],
         'N',
         ''
       )
@@ -319,7 +319,7 @@ describe('KiwoomStockAPI - fetchChart()', () => {
       const emptyResponse = {
         data: {
           return_code: 0,
-          output: []
+          stk_dt_pole_chart_qry: []
         },
         headers: { 'cont-yn': 'N', 'next-key': '' }
       }

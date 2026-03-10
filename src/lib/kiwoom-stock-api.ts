@@ -89,19 +89,20 @@ interface KiwoomStockDetailResponse {
 
 // ka10081/ka10082 차트 응답: 개별 캔들 데이터
 interface KiwoomChartCandleItem {
-  dt?: string       // 날짜 (YYYYMMDD)
-  opnprc?: string   // 시가
-  hgprc?: string    // 고가
-  lwprc?: string    // 저가
-  clsprc?: string   // 종가
-  trde_qty?: string // 거래량
+  dt?: string         // 날짜 (YYYYMMDD)
+  open_pric?: string  // 시가
+  high_pric?: string  // 고가
+  low_pric?: string   // 저가
+  cur_prc?: string    // 종가 (현재가)
+  trde_qty?: string   // 거래량
 }
 
 // ka10081/ka10082 차트 응답
 interface KiwoomChartResponse {
-  return_code: number
+  return_code?: number
   return_msg?: string
-  output?: KiwoomChartCandleItem[]
+  stk_cd?: string
+  stk_dt_pole_chart_qry?: KiwoomChartCandleItem[]
 }
 
 export class KiwoomStockAPI {
@@ -240,13 +241,13 @@ export class KiwoomStockAPI {
 
     // 첫 번째 페이지 요청 시 requestWithTokenRetry로 [8005] 에러 처리 (Task 4)
     while (contYn === 'Y' && pageCount < CHART_MAX_PAGES) {
-      // 요청 본문 구성
+      // 요청 본문 구성 (base_dt, upd_stkpc_tp는 키움 차트 API 필수 파라미터)
       const requestBody: Record<string, string> = {
         stk_cd: symbol,
+        base_dt: params.from || new Date().toISOString().slice(0, 10).replace(/-/g, ''),
+        upd_stkpc_tp: '1',
         req_cnt: params.reqCnt || '100'
       }
-      if (params.from) requestBody['from'] = params.from
-      if (params.to) requestBody['to'] = params.to
       // 페이지네이션: 두 번째 요청부터 next_key 포함
       if (nextKey) requestBody['next_key'] = nextKey
 
@@ -263,12 +264,13 @@ export class KiwoomStockAPI {
       )
 
       const result = response.data as KiwoomChartResponse
-      if (result.return_code !== 0) {
+      // return_code가 존재하고 0이 아닌 경우 에러
+      if (result.return_code !== undefined && result.return_code !== 0) {
         throw new Error(`차트 데이터 조회 실패: ${result.return_msg || '알 수 없는 에러'}`)
       }
 
-      // 캔들 데이터 변환
-      const outputList: KiwoomChartCandleItem[] = result.output || []
+      // 캔들 데이터 변환 (실제 응답: stk_dt_pole_chart_qry 배열)
+      const outputList: KiwoomChartCandleItem[] = result.stk_dt_pole_chart_qry || []
       const candles = outputList.map(item => this.transformChartCandle(item))
       allCandles.push(...candles)
 
@@ -299,10 +301,10 @@ export class KiwoomStockAPI {
 
     return {
       date,
-      open: this.parseNumber(item.opnprc) ?? 0,
-      high: this.parseNumber(item.hgprc) ?? 0,
-      low: this.parseNumber(item.lwprc) ?? 0,
-      close: this.parseNumber(item.clsprc) ?? 0,
+      open: this.parseNumber(item.open_pric) ?? 0,
+      high: this.parseNumber(item.high_pric) ?? 0,
+      low: this.parseNumber(item.low_pric) ?? 0,
+      close: this.parseNumber(item.cur_prc) ?? 0,
       volume: this.parseNumber(item.trde_qty) ?? 0
     }
   }
