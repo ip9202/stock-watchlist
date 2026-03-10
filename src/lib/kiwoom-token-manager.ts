@@ -28,6 +28,8 @@ export class KiwoomTokenManager {
   private static instance: KiwoomTokenManager | null = null
   private accessToken: string | null = null
   private tokenExpiresAt: number | null = null
+  // 동시 요청 중복 방지용 Promise (REQ-E01, REQ-S01)
+  private refreshPromise: Promise<string> | null = null
   private readonly appKey: string
   private readonly secretKey: string
   private readonly tokenUrl = 'https://api.kiwoom.com/oauth2/token'
@@ -43,6 +45,21 @@ export class KiwoomTokenManager {
   }
 
   /**
+   * 토큰 만료 에러 여부 확인 (REQ-E03, REQ-N01, REQ-N02)
+   * [8005] 토큰 만료/무효 에러만 true 반환
+   * [8001] 키 검증 실패는 재시도 불가 → false 반환
+   */
+  static isTokenError(error: unknown): boolean {
+    if (!error || !(error instanceof Error)) return false
+    const msg = error.message
+    // [8001] 키 검증 실패는 재시도해도 해결 불가 (REQ-N02)
+    if (msg.includes('[8001]')) return false
+    // [8005] 토큰 만료/무효 에러 감지 (REQ-E03)
+    if (msg.includes('[8005]')) return true
+    return false
+  }
+
+  /**
    * 싱글톤 인스턴스 반환
    */
   static getInstance(): KiwoomTokenManager {
@@ -55,15 +72,27 @@ export class KiwoomTokenManager {
   /**
    * 접근 토큰 발급 (REQ-001)
    * 캐시된 토큰이 있으면 재사용, 만료되었으면 갱신
+   * 동시 요청 시 중복 발급 방지 (REQ-U01, REQ-S01, REQ-E01)
    */
   async getAccessToken(): Promise<string> {
-    // 캐시된 토큰이 유효한지 확인
+    // 캐시된 토큰이 유효한지 확인 (REQ-S02)
     if (this.isTokenValid()) {
       return this.accessToken!
     }
 
-    // 새 토큰 발급 (재시도 로직 포함)
-    return this.fetchTokenWithRetry()
+    // 이미 진행 중인 갱신 요청이 있으면 동일 Promise 반환 (REQ-S01, REQ-E01)
+    if (this.refreshPromise) {
+      return this.refreshPromise
+    }
+
+    // 새 토큰 발급 Promise 생성 및 저장
+    this.refreshPromise = this.fetchTokenWithRetry()
+      .finally(() => {
+        // 성공/실패 모두 Promise 초기화 (REQ-E02)
+        this.refreshPromise = null
+      })
+
+    return this.refreshPromise
   }
 
   /**
@@ -74,11 +103,13 @@ export class KiwoomTokenManager {
   }
 
   /**
-   * 토큰 무효화 (테스트용)
+   * 토큰 무효화
+   * accessToken, tokenExpiresAt, refreshPromise 모두 초기화 (REQ-E05)
    */
   invalidateToken(): void {
     this.accessToken = null
     this.tokenExpiresAt = null
+    this.refreshPromise = null
   }
 
   /**

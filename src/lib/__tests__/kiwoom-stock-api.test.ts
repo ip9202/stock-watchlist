@@ -23,7 +23,15 @@ vi.mock('../kiwoom-token-manager', () => {
       getInstance: vi.fn(() => ({
         getAccessToken: mockGetAccessToken
       })),
-      getAccessToken: mockGetAccessToken
+      getAccessToken: mockGetAccessToken,
+      // isTokenError: 실제 구현 재현 ([8005] 감지, [8001] 제외)
+      isTokenError: (error: unknown): boolean => {
+        if (!error || !(error instanceof Error)) return false
+        const msg = error.message
+        if (msg.includes('[8001]')) return false
+        if (msg.includes('[8005]')) return true
+        return false
+      }
     }
   }
 })
@@ -254,6 +262,85 @@ describe('KiwoomStockAPI', () => {
       vi.mocked(axios.post).mockResolvedValueOnce(mockResponse as any)
 
       await expect(stockAPI.fetchStockDetail('999999')).rejects.toThrow('종목 시세 조회 실패: 잘못된 종목코드입니다')
+    })
+  })
+
+  describe('토큰 재시도 래퍼 (requestWithTokenRetry)', () => {
+    it('[8005] 에러 시 토큰 무효화 후 1회 재시도해야 한다', async () => {
+      // Arrange: 첫 번째 axios.post는 [8005] 에러, 두 번째는 성공
+      const tokenError = new Error('토큰이 유효하지 않습니다[8005]')
+      const successResponse = {
+        data: {
+          return_code: 0,
+          stk_cd: '005930',
+          stk_nm: '삼성전자',
+          cur_prc: '+85000',
+          trde_qty: '1000000'
+        }
+      }
+      vi.mocked(axios.post)
+        .mockRejectedValueOnce(tokenError)
+        .mockResolvedValueOnce(successResponse as any)
+
+      const mockInvalidateToken = vi.fn()
+      vi.spyOn(KiwoomTokenManager, 'getInstance')
+        .mockReturnValueOnce({
+          getAccessToken: vi.fn().mockResolvedValue('first-token'),
+          invalidateToken: mockInvalidateToken
+        } as any)
+        .mockReturnValueOnce({
+          getAccessToken: vi.fn().mockResolvedValue('new-token'),
+          invalidateToken: mockInvalidateToken
+        } as any)
+        .mockReturnValue({
+          getAccessToken: vi.fn().mockResolvedValue('new-token'),
+          invalidateToken: mockInvalidateToken
+        } as any)
+
+      // Act
+      const result = await stockAPI.fetchStockDetail('005930')
+
+      // Assert: 토큰 무효화 후 재시도
+      expect(mockInvalidateToken).toHaveBeenCalledTimes(1)
+      expect(axios.post).toHaveBeenCalledTimes(2)
+      expect(result.symbol).toBe('005930')
+    })
+
+    it('재시도 후에도 실패하면 에러를 throw해야 한다', async () => {
+      // Arrange: 첫 번째와 두 번째 모두 [8005] 에러
+      const tokenError = new Error('토큰이 유효하지 않습니다[8005]')
+      vi.mocked(axios.post)
+        .mockRejectedValueOnce(tokenError)
+        .mockRejectedValueOnce(tokenError)
+
+      const mockInvalidateToken = vi.fn()
+      vi.spyOn(KiwoomTokenManager, 'getInstance').mockReturnValue({
+        getAccessToken: vi.fn().mockResolvedValue('test-token'),
+        invalidateToken: mockInvalidateToken
+      } as any)
+
+      // Act & Assert
+      await expect(stockAPI.fetchStockDetail('005930')).rejects.toThrow('[8005]')
+      expect(mockInvalidateToken).toHaveBeenCalledTimes(1)
+    })
+
+    it('비토큰 에러는 즉시 throw하고 재시도하지 않아야 한다', async () => {
+      // Arrange: 네트워크 에러 (재시도 없어야 함)
+      const networkError = new Error('Network Error')
+      vi.mocked(axios.post).mockRejectedValueOnce(networkError)
+
+      const mockInvalidateToken = vi.fn()
+      vi.spyOn(KiwoomTokenManager, 'getInstance').mockReturnValue({
+        getAccessToken: vi.fn().mockResolvedValue('test-token'),
+        invalidateToken: mockInvalidateToken
+      } as any)
+
+      // Act & Assert
+      await expect(stockAPI.fetchStockDetail('005930')).rejects.toThrow('Network Error')
+      // 토큰 무효화 없어야 함
+      expect(mockInvalidateToken).not.toHaveBeenCalled()
+      // axios.post 1회만 호출
+      expect(axios.post).toHaveBeenCalledTimes(1)
     })
   })
 

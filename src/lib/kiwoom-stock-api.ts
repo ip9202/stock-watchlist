@@ -118,6 +118,31 @@ export class KiwoomStockAPI {
   }
 
   /**
+   * 토큰 에러 시 자동 재시도 래퍼 (REQ-U02, REQ-E03, REQ-E04, REQ-N01, REQ-N02)
+   * [8005] 토큰 에러 시 invalidateToken + 새 토큰으로 1회 재시도
+   * 비토큰 에러는 즉시 throw
+   */
+  private async requestWithTokenRetry<T>(
+    requestFn: (token: string) => Promise<T>
+  ): Promise<T> {
+    // 토큰 발급
+    const token = await KiwoomTokenManager.getInstance().getAccessToken()
+    try {
+      return await requestFn(token)
+    } catch (error) {
+      // [8005] 토큰 에러만 재시도 (REQ-E03, REQ-N01)
+      if (KiwoomTokenManager.isTokenError(error)) {
+        // 토큰 무효화 후 새 토큰으로 1회 재시도 (REQ-U02)
+        KiwoomTokenManager.getInstance().invalidateToken()
+        const newToken = await KiwoomTokenManager.getInstance().getAccessToken()
+        return requestFn(newToken)
+      }
+      // 비토큰 에러는 즉시 throw (REQ-N01, REQ-N02)
+      throw error
+    }
+  }
+
+  /**
    * 전체 종목 리스트 조회 (REQ-002)
    * TR: ka10099 - 전체 종목 리스트
    * @param market - 시장 구분 ('KOSPI', 'KOSDAQ', 'ALL')
@@ -148,9 +173,8 @@ export class KiwoomStockAPI {
       throw new Error('종목코드는 필수입니다')
     }
 
-    const token = await KiwoomTokenManager.getInstance().getAccessToken()
-
-    try {
+    // requestWithTokenRetry로 [8005] 에러 시 자동 재시도 (Task 4)
+    return this.requestWithTokenRetry(async (token) => {
       const response = await axios.post<KiwoomStockDetailResponse>(
         STKINFO_ENDPOINT,
         { stk_cd: symbol },
@@ -191,12 +215,7 @@ export class KiwoomStockAPI {
         high52w: this.parseSignedNumber(result.oyr_hgst),
         low52w: this.parseSignedNumber(result.oyr_lwst)
       }
-    } catch (error) {
-      if (error instanceof Error) {
-        throw error
-      }
-      throw new Error('알 수 없는 에러가 발생했습니다')
-    }
+    })
   }
 
   /**
@@ -211,8 +230,6 @@ export class KiwoomStockAPI {
     apiId: string,
     params: { from?: string; to?: string; reqCnt?: string }
   ): Promise<ChartData> {
-    const token = await KiwoomTokenManager.getInstance().getAccessToken()
-
     // 기간 매핑: ka10081 → daily, ka10082 → weekly
     const period: 'daily' | 'weekly' = apiId === 'ka10082' ? 'weekly' : 'daily'
 
@@ -221,6 +238,7 @@ export class KiwoomStockAPI {
     let nextKey = ''
     let pageCount = 0
 
+    // 첫 번째 페이지 요청 시 requestWithTokenRetry로 [8005] 에러 처리 (Task 4)
     while (contYn === 'Y' && pageCount < CHART_MAX_PAGES) {
       // 요청 본문 구성
       const requestBody: Record<string, string> = {
@@ -232,13 +250,16 @@ export class KiwoomStockAPI {
       // 페이지네이션: 두 번째 요청부터 next_key 포함
       if (nextKey) requestBody['next_key'] = nextKey
 
-      const response = await axios.post(
-        CHART_ENDPOINT,
-        requestBody,
-        {
-          headers: this.createHeaders(token, apiId),
-          timeout: REQUEST_TIMEOUT
-        }
+      const currentBody = { ...requestBody }
+      const response = await this.requestWithTokenRetry(async (token) =>
+        axios.post(
+          CHART_ENDPOINT,
+          currentBody,
+          {
+            headers: this.createHeaders(token, apiId),
+            timeout: REQUEST_TIMEOUT
+          }
+        )
       )
 
       const result = response.data as KiwoomChartResponse
@@ -355,10 +376,10 @@ export class KiwoomStockAPI {
    * mrkt_tp: "0"=KOSPI, "10"=KOSDAQ
    */
   private async fetchMarketStocks(market: 'KOSPI' | 'KOSDAQ'): Promise<StockInfo[]> {
-    const token = await KiwoomTokenManager.getInstance().getAccessToken()
     const mrktTp = market === 'KOSPI' ? '0' : '10'
 
-    try {
+    // requestWithTokenRetry로 [8005] 에러 시 자동 재시도 (Task 4)
+    return this.requestWithTokenRetry(async (token) => {
       const response = await axios.post<KiwoomStockListResponse>(
         STKINFO_ENDPOINT,
         { mrkt_tp: mrktTp },
@@ -383,12 +404,7 @@ export class KiwoomStockAPI {
           market,
           search_keywords: [item.code, item.name, market.toLowerCase()]
         }))
-    } catch (error) {
-      if (error instanceof Error) {
-        throw error
-      }
-      throw new Error('알 수 없는 에러가 발생했습니다')
-    }
+    })
   }
 
   /**

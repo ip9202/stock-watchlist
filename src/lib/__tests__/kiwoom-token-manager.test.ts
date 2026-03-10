@@ -216,4 +216,98 @@ describe('KiwoomTokenManager', () => {
       expect(axios.post).toHaveBeenCalledTimes(3)
     })
   })
+
+  describe('토큰 에러 감지 (isTokenError)', () => {
+    it('[8005] 에러 메시지를 감지해야 한다', () => {
+      const error = new Error('토큰이 유효하지 않습니다[8005]')
+      expect(KiwoomTokenManager.isTokenError(error)).toBe(true)
+    })
+
+    it('[8001] 키 검증 실패는 토큰 에러가 아니다', () => {
+      const error = new Error('App Key와 Secret Key 검증 실패[8001]')
+      expect(KiwoomTokenManager.isTokenError(error)).toBe(false)
+    })
+
+    it('일반 네트워크 에러는 토큰 에러가 아니다', () => {
+      const error = new Error('Network Error')
+      expect(KiwoomTokenManager.isTokenError(error)).toBe(false)
+    })
+
+    it('null/undefined는 false를 반환해야 한다', () => {
+      expect(KiwoomTokenManager.isTokenError(null)).toBe(false)
+      expect(KiwoomTokenManager.isTokenError(undefined)).toBe(false)
+    })
+  })
+
+  describe('동시 요청 중복 방지 (Promise Deduplication)', () => {
+    it('동시 다중 호출 시 fetchToken을 1회만 호출해야 한다', async () => {
+      // Arrange: 비동기 응답 시뮬레이션 (약간의 지연 추가)
+      vi.mocked(axios.post).mockImplementation(
+        () => new Promise(resolve => setTimeout(() => resolve({
+          data: {
+            return_code: 0,
+            token: mockAccessToken
+          }
+        }), 10))
+      )
+
+      // Act: 3개의 동시 요청
+      const [token1, token2, token3] = await Promise.all([
+        tokenManager.getAccessToken(),
+        tokenManager.getAccessToken(),
+        tokenManager.getAccessToken()
+      ])
+
+      // Assert: axios.post는 1번만 호출, 모두 동일한 토큰 반환
+      expect(axios.post).toHaveBeenCalledTimes(1)
+      expect(token1).toBe(mockAccessToken)
+      expect(token2).toBe(mockAccessToken)
+      expect(token3).toBe(mockAccessToken)
+    })
+
+    it('Promise 실패 시 모든 대기자에 에러를 전파하고 refreshPromise를 초기화해야 한다', async () => {
+      // Arrange: 토큰 발급 실패 (3번 재시도 모두 실패)
+      vi.mocked(axios.post).mockRejectedValue(new Error('Token fetch failed'))
+
+      // Act: 3개의 동시 요청 - 모두 에러를 받아야 함
+      const results = await Promise.allSettled([
+        tokenManager.getAccessToken(),
+        tokenManager.getAccessToken(),
+        tokenManager.getAccessToken()
+      ])
+
+      // Assert: 모두 실패
+      expect(results[0].status).toBe('rejected')
+      expect(results[1].status).toBe('rejected')
+      expect(results[2].status).toBe('rejected')
+
+      // Assert: refreshPromise가 초기화되어 다음 요청이 가능해야 함
+      const internalPromise = (tokenManager as any).refreshPromise
+      expect(internalPromise).toBeNull()
+    })
+
+    it('invalidateToken() 호출 시 refreshPromise도 초기화해야 한다', async () => {
+      // Arrange: 진행 중인 Promise가 있는 상황 시뮬레이션
+      let resolveToken: (value: unknown) => void
+      vi.mocked(axios.post).mockImplementation(
+        () => new Promise(resolve => { resolveToken = resolve })
+      )
+
+      // getAccessToken 호출 시작 (완료되지 않음)
+      const pendingPromise = tokenManager.getAccessToken()
+
+      // refreshPromise가 설정되어 있어야 함
+      expect((tokenManager as any).refreshPromise).not.toBeNull()
+
+      // Act: invalidateToken 호출
+      tokenManager.invalidateToken()
+
+      // Assert: refreshPromise가 null로 초기화되어야 함
+      expect((tokenManager as any).refreshPromise).toBeNull()
+
+      // Cleanup: pending Promise 해결
+      resolveToken!({ data: { return_code: 0, token: mockAccessToken } })
+      await pendingPromise.catch(() => {})
+    })
+  })
 })

@@ -25,6 +25,10 @@
   - 캔들스틱 및 라인 차트 전환
   - 자동 페이지네이션 (최대 5회)
   - 캐싱 최적화 (일봉 1시간, 주봉 1일 TTL)
+- **토큰 만료 자동 재시도** (SPEC-API-002):
+  - Promise 기반 동시 토큰 갱신 중복 제거
+  - API 에러 레벨 토큰 만료 감지 및 자동 재시도
+  - [8005] 토큰 에러 자동 감지 및 1회 재시도
 - Docker 컨테이너 기반 개발환경 구축
 - 애플리케이션 로고 제작 및 브랜딩 완료
 
@@ -37,7 +41,7 @@
 - **Stock Data API**: 키움증권 REST API (OAuth2 인증)
 - **Chart Library**: lightweight-charts v5.1.0 (TradingView OSS)
 - **Additional APIs**: 네이버 금융 API, DART API
-- **Testing**: Vitest + TypeScript (62 테스트)
+- **Testing**: Vitest + TypeScript (72 테스트)
 - **Containerization**: Docker + Docker Compose
 - **배포**: Railway (Docker 컨테이너)
 
@@ -232,7 +236,7 @@ curl https://your-railway-app.up.railway.app/api/stocks/005930
     "low52w": 49900,
     "timestamp": "2025-09-04T06:25:21.301Z",
     "extra_info": {
-      "data_source": "PyKRX (한국거래소)",
+      "data_source": "키움증권 REST API",
       "last_updated": "2025-09-04 06:25:21",
       "is_etf": false
     }
@@ -255,8 +259,16 @@ curl https://your-railway-app.up.railway.app/api/stocks/005930
   - REST API 클라이언트 (`src/lib/kiwoom-stock-api.ts`)
   - PyKRX 종목 검색 → 키움증권 REST API로 전환
   - WebSocket 개별 시세 → REST API로 전환
+- ✅ **키움 REST API 차트 기능 구현** (SPEC-CHART-001)
+  - 일봉(1M/3M/6M/1Y) 및 주봉(5Y) 차트 API
+  - lightweight-charts v5 프론트엔드 통합
+  - 자동 페이지네이션 및 캐싱 최적화
+- ✅ **키움 REST API 토큰 만료 처리 강화** (SPEC-API-002)
+  - Promise 기반 동시 토큰 갱신 중복 제거
+  - API 레벨 토큰 에러 감지 및 자동 재시도
+  - [8005] 토큰 에러 1회 자동 재시도
 - ✅ TypeScript 기반 직접 HTTP 호출 (child_process 제거)
-- ✅ Vitest를 사용한 포괄적 테스트 (36 테스트, 100% 통과)
+- ✅ Vitest를 사용한 포괄적 테스트 (72 테스트, 100% 통과)
 - ✅ 코드 커버리지 ~90% 달성
 - ✅ 기존 API 응답 형식 완벽 유지 (프론트엔드 변경 불필요)
 
