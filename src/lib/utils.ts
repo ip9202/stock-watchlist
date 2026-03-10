@@ -5,37 +5,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatNumber(num: number): string {
-  if (num >= 1e9) {
-    return (num / 1e9).toFixed(1) + "B"
-  }
-  if (num >= 1e6) {
-    return (num / 1e6).toFixed(1) + "M"
-  }
-  if (num >= 1e3) {
-    return (num / 1e3).toFixed(1) + "K"
-  }
-  return num.toString()
-}
-
-export function formatCurrency(num: number): string {
-  return new Intl.NumberFormat('ko-KR', {
-    style: 'currency',
-    currency: 'KRW',
-    maximumFractionDigits: 0,
-  }).format(num)
-}
-
-export function formatPercent(num: number): string {
-  return `${num > 0 ? '+' : ''}${num.toFixed(2)}%`
-}
-
-export function getPriceChangeColor(change: number): string {
-  if (change > 0) return "text-red-600"
-  if (change < 0) return "text-blue-600"
-  return "text-gray-600"
-}
-
 export function formatMarketCapKorean(marketCap: number): string {
   if (!marketCap || marketCap === 0) return '-'
   

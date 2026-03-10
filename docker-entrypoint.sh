@@ -31,8 +31,8 @@ node scripts/seed-demo-user.js || {
 }
 
 # 주식 데이터 캐시 미리 생성 (첫 API 호출 속도 향상)
-echo "📊 주식 데이터 캐시 생성 중..."
-timeout 180s python3 scripts/fetch_all_stocks.py --search "삼성" --limit 1 --cache /app/all_stocks_cache.json || {
+echo "📊 PyKRX로 주식 데이터 캐시 생성 중..."
+timeout 180s python3 scripts/fetch_all_stocks_kiwoom.py --search "삼성" --limit 1 --cache /app/all_stocks_kiwoom_cache.json || {
     echo "⚠️ 캐시 생성 실패 또는 타임아웃 (API에서 재시도됩니다)"
 }
 

@@ -28,12 +28,16 @@ services:
     environment:
       # Database
       DATABASE_URL: "postgresql://stock_user:stock_password@postgres:5432/stock_watchlist"
-      
+
       # APIs (load from .env.local)
       NAVER_CLIENT_ID: "${NAVER_CLIENT_ID:-default_naver_id}"
       NAVER_CLIENT_SECRET: "${NAVER_CLIENT_SECRET:-default_naver_secret}"
       DART_API_KEY: "${DART_API_KEY:-default_dart_key}"
-      
+
+      # Kiwoom Securities OpenAPI
+      KIWOOM_APP_KEY: "${KIWOOM_APP_KEY}"
+      KIWOOM_SECRET_KEY: "${KIWOOM_SECRET_KEY}"
+
       # Application
       NODE_ENV: production
       PYTHONPATH: /app

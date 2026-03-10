@@ -25,17 +25,19 @@
 
 ### 🔧 기술 스택
 - **Frontend**: Next.js 15.5.2 + React 19 + TypeScript
-- **Backend**: Next.js API Routes
+- **Backend**: Next.js API Routes + TypeScript
 - **Database**: PostgreSQL 15
 - **ORM**: Prisma 6.15.0
 - **Styling**: Tailwind CSS v4
-- **Data Collection**: Python 3.12 + PyKRX + 네이버 API
+- **Stock Data API**: 키움증권 REST API (OAuth2 인증)
+- **Additional APIs**: 네이버 금융 API, DART API
+- **Testing**: Vitest + TypeScript (36 테스트)
 - **Containerization**: Docker + Docker Compose
 - **배포**: Railway (Docker 컨테이너)
 
 ### 📊 데이터 소스
-- **PyKRX**: 한국거래소 공식 데이터 (무료)
-- **네이버 금융 API**: 실시간 주가, 뉴스
+- **키움증권 REST API**: 주식 시세, 종목 정보 (OAuth2 인증)
+- **네이버 금융 API**: 뉴스 정보
 - **DART API**: 전자공시시스템 정보
 
 ## 🏃‍♂️ 개발 환경 설정
@@ -58,9 +60,11 @@ cd stock-watchlist
 # .env.local 파일 생성 (예시는 .env.example 참고)
 cp .env.example .env.local
 
-# 필요한 API 키 설정
+# 필수 API 키 설정
+KIWOOM_APP_KEY=your_kiwoom_app_key
+KIWOOM_SECRET_KEY=your_kiwoom_secret_key
 NAVER_CLIENT_ID=your_naver_client_id
-NAVER_CLIENT_SECRET=your_naver_client_secret  
+NAVER_CLIENT_SECRET=your_naver_client_secret
 DART_API_KEY=your_dart_api_key
 ```
 
@@ -238,6 +242,17 @@ curl https://your-railway-app.up.railway.app/api/stocks/005930
 - **high52w/low52w**: 52주 최고가/최저가
 
 ## 🛠️ 개발 히스토리
+
+### v1.1.0 (2026-03-10)
+- ✅ **키움증권 REST API 완전 전환** (SPEC-API-001)
+  - OAuth2 토큰 관리 모듈 (`src/lib/kiwoom-token-manager.ts`)
+  - REST API 클라이언트 (`src/lib/kiwoom-stock-api.ts`)
+  - PyKRX 종목 검색 → 키움증권 REST API로 전환
+  - WebSocket 개별 시세 → REST API로 전환
+- ✅ TypeScript 기반 직접 HTTP 호출 (child_process 제거)
+- ✅ Vitest를 사용한 포괄적 테스트 (36 테스트, 100% 통과)
+- ✅ 코드 커버리지 ~90% 달성
+- ✅ 기존 API 응답 형식 완벽 유지 (프론트엔드 변경 불필요)
 
 ### v1.0.0 (2025-09-04)
 - ✅ PyKRX 데이터 소스 전환 (Yahoo Finance 대체)

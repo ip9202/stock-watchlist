@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { StockInfo } from '@/types/stock'
 import { ApiResponse } from '@/types/api'
-import path from 'path'
 import { cache } from '@/lib/cache'
-import { promises as fs } from 'fs'
-import { executeScript } from '@/lib/python-executor'
+import { KiwoomStockAPI, type StockDetail } from '@/lib/kiwoom-stock-api'
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ symbol: string }> }) {
+const CACHE_TTL_STOCK_DETAIL = 30 // 30초
+
+/**
+ * 개별 종목 시세 조회 API (REQ-003: WebSocket → Kiwoom REST API 전환)
+ * GET /api/stocks/{symbol}
+ */
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ symbol: string }> }
+) {
   try {
     const { symbol } = await params
 
@@ -19,7 +26,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     // 캐시 키 생성
     const cacheKey = `stock_${symbol}`
-    
+
     // 캐시된 데이터 확인 (30초 TTL)
     const cachedData = cache.get(cacheKey)
     if (cachedData) {
@@ -30,61 +37,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       })
     }
 
-    console.log(`Cache MISS for ${symbol} - fetching new data`)
+    console.log(`Cache MISS for ${symbol} - fetching from Kiwoom REST API`)
 
-    // Python 스크립트 실행 (환경 자동 감지)
-    const result = await executeScript('scripts/fetch_stock_data.py', ['--symbol', symbol])
-    
-    if (!result.success) {
-      return NextResponse.json<ApiResponse>({
-        success: false,
-        error: result.error || 'Failed to fetch stock data'
-      }, { status: 500 })
-    }
-    
-    // Python 스크립트 결과 파싱
-    const pythonResult = JSON.parse(result.output)
-    
-    if (!pythonResult.success) {
-      return NextResponse.json<ApiResponse>({
-        success: false,
-        error: pythonResult.error || 'Failed to fetch stock data'
-      }, { status: 500 })
-    }
+    // Kiwoom REST API에서 종목 시세 조회
+    const stockAPI = new KiwoomStockAPI()
+    const stockDetail = await stockAPI.fetchStockDetail(symbol)
 
-    // 한글 종목명 가져오기
-    const allStocksPath = path.join(process.cwd(), 'all_stocks_cache.json');
-    const allStocksFile = await fs.readFile(allStocksPath, 'utf-8');
-    const allStocksData = JSON.parse(allStocksFile);
-    
-    const stockFromCache = allStocksData.data.find((stock: any) => stock.symbol === symbol);
-    const koreanName = stockFromCache?.name;
-
-    // StockInfo 형식으로 변환
-    const stockInfo: StockInfo = {
-      symbol: pythonResult.symbol,
-      name: koreanName || pythonResult.name, // 한글 이름이 있으면 사용, 없으면 API 결과 사용
-      price: pythonResult.price,
-      changeAmount: pythonResult.changeAmount,
-      changePercent: pythonResult.changePercent,
-      volume: pythonResult.volume,
-      marketCap: pythonResult.marketCap,
-      tradingValue: pythonResult.tradingValue,
-      sharesOutstanding: pythonResult.sharesOutstanding,
-      volumeRatio: pythonResult.volumeRatio,
-      high: pythonResult.high,
-      low: pythonResult.low,
-      open: pythonResult.open,
-      previousClose: pythonResult.previousClose,
-      high52w: pythonResult.high52w,
-      low52w: pythonResult.low52w,
-      timestamp: new Date(pythonResult.timestamp),
-      extra_info: pythonResult.extra_info || {}
-    }
+    // StockDetail을 StockInfo로 변환 (REQ-007: 인터페이스 호환성 유지)
+    const stockInfo: StockInfo = toStockInfo(symbol, stockDetail)
 
     // 캐시에 저장 (30초 TTL)
-    cache.set(cacheKey, stockInfo, 30)
-    console.log(`Cached ${symbol} for 30 seconds`)
+    cache.set(cacheKey, stockInfo, CACHE_TTL_STOCK_DETAIL)
+    console.log(`Cached ${symbol} for ${CACHE_TTL_STOCK_DETAIL} seconds`)
 
     return NextResponse.json<ApiResponse<StockInfo>>({
       success: true,
@@ -92,10 +56,53 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     })
 
   } catch (error) {
-    console.error('Stock info error:', error)
+    console.error('Stock detail error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch stock data'
+
     return NextResponse.json<ApiResponse>({
       success: false,
-      error: 'Internal server error'
+      error: errorMessage
     }, { status: 500 })
+  }
+}
+
+/**
+ * null을 undefined로 변환하는 헬퍼 함수
+ */
+function nullToUndefined<T>(value: T | null): T | undefined {
+  return value === null ? undefined : value
+}
+
+/**
+ * StockDetail을 StockInfo로 변환 (REQ-007: 기존 인터페이스 호환)
+ *
+ * 주의: Kiwoom API에서 필수 필드가 누락된 경우 기본값 사용
+ * - price, changeAmount, changePercent, volume이 null인 경우 0 사용
+ * - 이는 데이터 부재를 0값과 구별하기 위함 (REQ-004)
+ */
+function toStockInfo(symbol: string, detail: StockDetail): StockInfo {
+  return {
+    symbol,
+    name: detail.name ?? '',
+    // 필수 필드: null인 경우 0 사용 (데이터 부재 표시)
+    price: detail.price ?? 0,
+    changeAmount: detail.changeAmount ?? 0,
+    changePercent: detail.changePercent ?? 0,
+    volume: detail.volume ?? 0,
+    // 선택 필드: null을 undefined로 변환
+    marketCap: nullToUndefined(detail.marketCap),
+    tradingValue: nullToUndefined(detail.tradingValue),
+    sharesOutstanding: nullToUndefined(detail.sharesOutstanding),
+    volumeRatio: nullToUndefined(detail.volumeRatio),
+    high: nullToUndefined(detail.high),
+    low: nullToUndefined(detail.low),
+    open: nullToUndefined(detail.open),
+    previousClose: nullToUndefined(detail.previousClose),
+    high52w: nullToUndefined(detail.high52w),
+    low52w: nullToUndefined(detail.low52w),
+    timestamp: new Date(),
+    extra_info: {
+      data_source: 'Kiwoom REST API'
+    }
   }
 }

@@ -27,10 +27,7 @@ export default function DashboardPage() {
     } else {
       if (response.status === 409 || (data.error && data.error.includes('already exists'))) {
         alert('이미 관심종목에 추가된 종목입니다.')
-        // This is a handled, expected situation, so we use console.log.
-        console.log('Attempted to add a duplicate stock:', data.error) 
       } else {
-        // This is an unexpected error, so we keep console.error.
         alert(`오류가 발생했습니다: ${data.error || '알 수 없는 오류'}`)
         console.error('관심종목 추가 실패:', data.error)
       }

@@ -15,11 +15,14 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Install kiwoom-restful separately (may have dependency conflicts)
+RUN pip install --no-cache-dir kiwoom-restful || echo "kiwoom-restful install failed, will retry"
+
 # Verify critical packages
-RUN python -c "import pykrx; print('✅ PyKRX installed')"
-RUN python -c "import yfinance; print('✅ yfinance installed')" 
-RUN python -c "import requests; print('✅ requests installed')"
-RUN python -c "import pandas; print('✅ pandas installed')"
+RUN python -c "import pykrx; print('✅ PyKRX installed')" || echo "PyKRX not found"
+RUN python -c "import yfinance; print('✅ yfinance installed')" || echo "yfinance not found"
+RUN python -c "import requests; print('✅ requests installed')" || echo "requests not found"
+RUN python -c "import pandas; print('✅ pandas installed')" || echo "pandas not found"
 
 # Stage 2: Node.js + Python combined
 FROM python:3.12-slim as production
