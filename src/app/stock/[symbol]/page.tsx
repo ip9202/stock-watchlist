@@ -9,6 +9,7 @@ import { ArrowLeft, TrendingUp, TrendingDown, ExternalLink, Calendar, Building }
 import { formatMarketCapKorean } from "@/lib/utils"
 import Link from "next/link"
 import { StockChart } from "@/components/chart"
+import { apiFetch, apiUrl } from "@/lib/api"
 
 interface StockPageProps {
   params: Promise<{
@@ -114,7 +115,7 @@ export default function StockPage({ params }: StockPageProps) {
     if (!symbol) return
     
     try {
-      const response = await fetch('/api/watchlist')
+      const response = await apiFetch('/api/watchlist')
       const result = await response.json()
       
       if (result.success) {
@@ -135,14 +136,14 @@ export default function StockPage({ params }: StockPageProps) {
     try {
       if (isInWatchlist) {
         // 관심종목에서 제거
-        const watchlistResponse = await fetch('/api/watchlist')
+        const watchlistResponse = await apiFetch('/api/watchlist')
         const watchlistResult = await watchlistResponse.json()
         
         if (watchlistResult.success) {
           const watchlistItem = watchlistResult.data.find((item: any) => item.symbol === symbol)
           
           if (watchlistItem) {
-            const deleteResponse = await fetch(`/api/watchlist/${watchlistItem.id}`, {
+            const deleteResponse = await apiFetch(`/api/watchlist/${watchlistItem.id}`, {
               method: 'DELETE'
             })
             
@@ -150,14 +151,14 @@ export default function StockPage({ params }: StockPageProps) {
             if (deleteResult.success) {
               setIsInWatchlist(false)
               // 관심종목에서 삭제 성공 시 메인페이지로 이동
-              window.location.href = '/'
+              window.location.href = apiUrl('/')
               return
             }
           }
         }
       } else {
         // 관심종목에 추가
-        const addResponse = await fetch('/api/watchlist', {
+        const addResponse = await apiFetch('/api/watchlist', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -186,7 +187,7 @@ export default function StockPage({ params }: StockPageProps) {
     const fetchData = async () => {
       try {
         // 1단계: 주식 기본 데이터 먼저 로딩
-        const stockResponse = await fetch(`/api/stocks/${symbol}`, {
+        const stockResponse = await apiFetch(`/api/stocks/${symbol}`, {
           cache: 'no-store'
         })
         const stockResult = await stockResponse.json()
@@ -205,10 +206,10 @@ export default function StockPage({ params }: StockPageProps) {
         setTimeout(async () => {
           try {
             const [newsResponse, disclosureResponse] = await Promise.all([
-              fetch(`/api/stocks/${symbol}/news?limit=5&name=${encodeURIComponent(companyName)}`, {
+              apiFetch(`/api/stocks/${symbol}/news?limit=5&name=${encodeURIComponent(companyName)}`, {
                 cache: 'no-store'
               }),
-              fetch(`/api/stocks/${symbol}/disclosure?limit=5`, {
+              apiFetch(`/api/stocks/${symbol}/disclosure?limit=5`, {
                 cache: 'no-store'
               })
             ])
@@ -226,6 +227,8 @@ export default function StockPage({ params }: StockPageProps) {
             setDisclosureLoading(false)
           } catch (error) {
             console.error('Failed to fetch news/disclosure data:', error)
+            setNewsLoading(false)
+            setDisclosureLoading(false)
           }
         }, 100) // 100ms 후 백그라운드 로딩 시작
         
