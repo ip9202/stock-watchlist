@@ -27,19 +27,22 @@ stock_watchlist/
 │   │   ├── dashboard/          # 대시보드 컴포넌트
 │   │   │   ├── StockSearch.tsx # 종목 검색
 │   │   │   ├── StockCard.tsx   # 주식 카드
-│   │   │   ├── WatchlistManager.tsx # 관심종목 관리
-│   │   │   └── DisclosureList.tsx   # 공시 목록
+│   │   │   └── WatchlistManager.tsx # 관심종목 관리
 │   │   ├── chart/              # 차트 컴포넌트
 │   │   │   ├── StockChart.tsx  # 차트 데이터 페칭 + 상태 관리
 │   │   │   ├── ChartContainer.tsx # lightweight-charts 렌더링
-│   │   │   ├── ChartToolbar.tsx # 기간/유형 선택 UI
+│   │   │   ├── ChartToolbar.tsx # 봉 타입/기간 선택 UI (상호 배타적)
+│   │   │   ├── chart-data-utils.ts # 차트 데이터 변환/중복제거 헬퍼
 │   │   │   └── index.ts        # 배럴 내보내기
 │   │   └── layout/             # 레이아웃 컴포넌트
 │   │       └── Footer.tsx      # 푸터
 │   ├── lib/                    # 유틸리티 라이브러리
 │   │   ├── db.ts               # Prisma 클라이언트
 │   │   ├── cache.ts            # 캐싱 유틸리티
-│   │   ├── python-executor.ts  # Python 스크립트 실행기
+│   │   ├── api.ts              # API 헬퍼 (apiUrl, apiFetch - basePath 적용)
+│   │   ├── env.ts              # 환경 변수 검증
+│   │   ├── kiwoom-token-manager.ts  # 키움 OAuth2 토큰 관리 (싱글톤)
+│   │   ├── kiwoom-stock-api.ts # 키움 REST API 클라이언트
 │   │   ├── utils.ts            # 일반 유틸리티
 │   │   └── constants.ts        # 상수 정의
 │   └── types/                  # TypeScript 타입
