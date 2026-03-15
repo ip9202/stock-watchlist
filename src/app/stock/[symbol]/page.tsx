@@ -334,9 +334,7 @@ export default function StockPage({ params }: StockPageProps) {
                     <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
                     <span className="text-xs text-gray-600">실시간</span>
                     <div className="flex items-center space-x-1">
-                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded border border-blue-200">PyKRX</span>
-                      <span className="text-xs text-gray-400">+</span>
-                      <span className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">Yahoo Finance</span>
+                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded border border-blue-200">키움증권 REST API</span>
                     </div>
                   </div>
                 </CardTitle>

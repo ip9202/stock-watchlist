@@ -58,7 +58,7 @@ export function Footer() {
                 <span className="text-gray-500">데이터 제공</span>
               </li>
               <li className="pl-2">
-                <span>Yahoo Finance API</span>
+                <span>키움증권 REST API</span>
               </li>
               <li className="pl-2">
                 <span>금감원 DART API</span>

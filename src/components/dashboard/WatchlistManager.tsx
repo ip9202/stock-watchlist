@@ -5,6 +5,7 @@ import { StockCard } from './StockCard'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 import { Trash2, RefreshCw } from 'lucide-react'
+import { apiFetch } from '@/lib/api'
 
 interface WatchlistItem {
   id: string
@@ -27,7 +28,7 @@ export function WatchlistManager() {
   // 관심종목 목록 불러오기
   const fetchWatchlist = async () => {
     try {
-      const response = await fetch('/api/watchlist')
+      const response = await apiFetch('/api/watchlist')
       const data = await response.json()
       
       if (data.success) {
@@ -45,7 +46,7 @@ export function WatchlistManager() {
   // 관심종목 추가
   const addToWatchlist = async (stock: SearchResult) => {
     try {
-      const response = await fetch('/api/watchlist', {
+      const response = await apiFetch('/api/watchlist', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -76,7 +77,7 @@ export function WatchlistManager() {
   const removeFromWatchlist = async (symbol: string) => {
 
     try {
-      const response = await fetch(`/api/watchlist/${watchlist.find(item => item.symbol === symbol)?.id}`, {
+      const response = await apiFetch(`/api/watchlist/${watchlist.find(item => item.symbol === symbol)?.id}`, {
         method: 'DELETE',
       })
 

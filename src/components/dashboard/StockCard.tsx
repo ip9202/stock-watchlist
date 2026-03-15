@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { TrendingUp, TrendingDown, Loader2 } from "lucide-react"
 import { formatMarketCapKorean } from "@/lib/utils"
 import Link from "next/link"
+import { apiFetch } from "@/lib/api"
 
 interface StockData {
   symbol: string
@@ -36,7 +37,7 @@ export function StockCard({ symbol, defaultName = "로딩 중..." }: StockCardPr
         setError(false)
         
         // 주식 정보 요청만 (공시 정보는 하단 섹션에서만 표시)
-        const stockResponse = await fetch(`/api/stocks/${symbol}`)
+        const stockResponse = await apiFetch(`/api/stocks/${symbol}`)
         const stockResult = await stockResponse.json()
         
         if (stockResult.success && stockResult.data) {
@@ -219,7 +220,7 @@ export function StockCard({ symbol, defaultName = "로딩 중..." }: StockCardPr
                       day: 'numeric',
                       hour: '2-digit',
                       minute: '2-digit'
-                    }) : 'Yahoo Finance'}
+                    }) : '키움증권'}
                   </p>
                 </div>
                 <div className="text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">

@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic'
 import useSWR from 'swr'
 import { ChartMode, ChartData } from '@/types/stock'
 import { ChartToolbar } from './ChartToolbar'
+import { apiUrl } from '@/lib/api'
 
 // @MX:NOTE: ChartContainer는 브라우저 전용 API를 사용하므로 SSR을 비활성화하여 dynamic import
 // @MX:REASON: lightweight-charts가 window/document에 접근하여 서버 환경에서 오류 발생
@@ -121,9 +122,10 @@ export function StockChart({ symbol }: StockChartProps) {
   const chartType = mode.type === 'candle' ? 'candlestick' : 'line'
 
   // API URL 구성: from(시작일) + to(종료일=오늘) + period + tic_scope(분봉 전용)
+  // apiUrl()로 basePath 적용 (클라이언트 컴포넌트에서는 자동 적용 안 됨)
   const chartUrl = ticScope
-    ? `/api/stocks/${symbol}/chart?period=${apiPeriod}&from=${fromDate}&to=${toDate}&tic_scope=${ticScope}`
-    : `/api/stocks/${symbol}/chart?period=${apiPeriod}&from=${fromDate}&to=${toDate}`
+    ? apiUrl(`/api/stocks/${symbol}/chart?period=${apiPeriod}&from=${fromDate}&to=${toDate}&tic_scope=${ticScope}`)
+    : apiUrl(`/api/stocks/${symbol}/chart?period=${apiPeriod}&from=${fromDate}&to=${toDate}`)
 
   // 차트 데이터 SWR 페칭
   const { data, error, isLoading, mutate } = useSWR<{

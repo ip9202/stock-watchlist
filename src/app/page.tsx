@@ -5,11 +5,12 @@ import { TrendingUp } from "lucide-react"
 import { StockSearch } from "@/components/dashboard/StockSearch"
 import { WatchlistManager } from "@/components/dashboard/WatchlistManager"
 import { Footer } from "@/components/layout/Footer"
+import { apiFetch } from "@/lib/api"
 
 export default function DashboardPage() {
 
   const handleAddStock = async (stock: { symbol: string; name: string; market: string }) => {
-    const response = await fetch('/api/watchlist', {
+    const response = await apiFetch('/api/watchlist', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

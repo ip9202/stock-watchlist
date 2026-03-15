@@ -9,14 +9,13 @@
 // Required environment variables for the application to function
 const REQUIRED_ENV_VARS = [
   'DATABASE_URL',
-  'NEXTAUTH_SECRET',
-  'DART_API_KEY',
   'KIWOOM_APP_KEY',
   'KIWOOM_SECRET_KEY',
 ] as const
 
 // Optional but recommended environment variables
 const RECOMMENDED_ENV_VARS = [
+  'DART_API_KEY',
   'NAVER_CLIENT_ID',
   'NAVER_CLIENT_SECRET',
 ] as const

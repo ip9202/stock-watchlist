@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Search, Plus, Loader2 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { apiFetch } from '@/lib/api'
 // import { Card, CardContent } from '@/components/ui/card'
 
 interface SearchResult {
@@ -33,7 +34,7 @@ export function StockSearch({ onAddStock }: StockSearchProps) {
     setIsLoading(true)
     setShowResults(true) // 로딩 시작할 때 바로 드롭다운 표시
     try {
-      const response = await fetch(`/api/stocks?q=${encodeURIComponent(searchQuery)}`)
+      const response = await apiFetch(`/api/stocks?q=${encodeURIComponent(searchQuery)}`)
       const data = await response.json()
 
       if (data.success) {
