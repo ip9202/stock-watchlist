@@ -783,11 +783,11 @@ export default function StockPage({ params }: StockPageProps) {
                     >
                       네이버 토론실 보기
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       className="w-full bg-white border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-900 hover:border-gray-400 transition-all text-sm"
-                      onClick={() => window.open(`https://gall.dcinside.com/board/lists/?id=stock_new`, '_blank')}
+                      onClick={() => window.open(`https://search.naver.com/search.naver?where=view&query=${encodeURIComponent(data.name + ' 주식 분석')}`, '_blank')}
                     >
                       커뮤니티 의견 더보기
                     </Button>
