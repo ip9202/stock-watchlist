@@ -365,7 +365,14 @@ export class KiwoomStockAPI {
         })
       : allCandles
 
-    return filteredCandles
+    // 업종 지수 가격은 100배 스케일 (564048 → 5640.48)
+    return filteredCandles.map(c => ({
+      ...c,
+      open: c.open / 100,
+      high: c.high / 100,
+      low: c.low / 100,
+      close: c.close / 100,
+    }))
   }
 
   /**
@@ -496,7 +503,8 @@ export class KiwoomStockAPI {
    */
   private extractChartCandles(result: KiwoomChartResponse): KiwoomChartCandleItem[] {
     for (const key of Object.keys(result)) {
-      if (key.endsWith('_pole_chart_qry') && Array.isArray(result[key])) {
+      // 주식 차트: stk_*_pole_chart_qry, 업종 차트: inds_*_pole_qry
+      if ((key.endsWith('_pole_chart_qry') || key.endsWith('_pole_qry')) && Array.isArray(result[key])) {
         return result[key] as KiwoomChartCandleItem[]
       }
     }
