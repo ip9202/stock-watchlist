@@ -14,6 +14,7 @@ import {
   LineSeries,
   LineStyle,
   UTCTimestamp,
+  WhitespaceData,
 } from 'lightweight-charts'
 import { ChartCandle } from '@/types/stock'
 import { toCandlestickData, toLineData } from './chart-data-utils'
@@ -129,31 +130,39 @@ export function ChartContainer({ candles, chartType, previousClose }: ChartConta
           },
         } : {}),
       })
-      lineSeries.setData(toLineData(candles))
+      const lineData: (Parameters<typeof lineSeries.setData>[0][number])[] = toLineData(candles)
+
+      if (isIntraday) {
+        // 1일 분봉 차트: 09:00~15:30 시간축 고정을 위해
+        // 장 시작/종료 시간에 빈 데이터 포인트(Whitespace)를 추가하여 시간축 앵커 생성
+        const dateStr = candles[0].date.slice(0, 10)
+        const y = parseInt(dateStr.slice(0, 4))
+        const mo = parseInt(dateStr.slice(5, 7)) - 1
+        const d = parseInt(dateStr.slice(8, 10))
+        const marketOpen = Math.floor(Date.UTC(y, mo, d, MARKET_OPEN_HOUR, MARKET_OPEN_MIN) / 1000) as UTCTimestamp
+        const marketClose = Math.floor(Date.UTC(y, mo, d, MARKET_CLOSE_HOUR, MARKET_CLOSE_MIN) / 1000) as UTCTimestamp
+
+        // 09:00 앵커: 데이터가 09:00보다 늦게 시작하면 빈 포인트 추가
+        if (lineData.length === 0 || (lineData[0].time as number) > (marketOpen as number)) {
+          lineData.unshift({ time: marketOpen } as WhitespaceData)
+        }
+        // 15:30 앵커: 데이터가 15:30까지 없으면 빈 포인트 추가
+        if (lineData.length === 0 || (lineData[lineData.length - 1].time as number) < (marketClose as number)) {
+          lineData.push({ time: marketClose } as WhitespaceData)
+        }
+      }
+
+      lineSeries.setData(lineData)
       seriesRef.current = lineSeries
     }
 
     if (candles.length > 0) {
-      const isIntraday = candles[0].date.includes('T')
-
-      if (isIntraday) {
-        // 1일 분봉 차트: 시간축을 09:00~15:30 고정
-        // 장중에는 데이터가 없는 미래 시간이 빈 공간으로 표시됨
-        const dateStr = candles[0].date.slice(0, 10) // "YYYY-MM-DD"
-        const y = parseInt(dateStr.slice(0, 4))
-        const mo = parseInt(dateStr.slice(5, 7)) - 1
-        const d = parseInt(dateStr.slice(8, 10))
-        // Date.UTC를 KST 값으로 직접 사용 (타임존 변환 방지)
-        const marketOpen = Math.floor(Date.UTC(y, mo, d, MARKET_OPEN_HOUR, MARKET_OPEN_MIN) / 1000) as UTCTimestamp
-        const marketClose = Math.floor(Date.UTC(y, mo, d, MARKET_CLOSE_HOUR, MARKET_CLOSE_MIN) / 1000) as UTCTimestamp
-        chart.timeScale().setVisibleRange({ from: marketOpen, to: marketClose })
-      } else {
-        // 일봉/주봉/월봉: 데이터 범위에 맞춤
-        chart.timeScale().fitContent()
-      }
+      // 모든 차트 타입에서 fitContent 사용 (인트라데이는 앵커 포인트로 범위 확정)
+      chart.timeScale().fitContent()
 
       // 1일 분봉 차트에서 전일 종가 기준선 표시
-      if (isIntraday && previousClose && seriesRef.current) {
+      const isIntradayChart = candles[0].date.includes('T')
+      if (isIntradayChart && previousClose && seriesRef.current) {
         seriesRef.current.createPriceLine({
           price: previousClose,
           color: '#f59e0b',
