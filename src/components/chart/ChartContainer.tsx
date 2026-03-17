@@ -132,9 +132,9 @@ export function ChartContainer({ candles, chartType, previousClose }: ChartConta
       })
       const lineData: (Parameters<typeof lineSeries.setData>[0][number])[] = toLineData(candles)
 
-      if (isIntraday) {
-        // 1일 분봉 차트: 09:00~15:30 시간축 고정을 위해
-        // 장 시작/종료 시간에 빈 데이터 포인트(Whitespace)를 추가하여 시간축 앵커 생성
+      if (isIntraday && lineData.length > 0) {
+        // 1일 분봉 차트: 09:00~15:30 시간축 고정
+        // 실제 데이터 포인트로 시간축 앵커를 생성하여 확실한 범위 확장
         const dateStr = candles[0].date.slice(0, 10)
         const y = parseInt(dateStr.slice(0, 4))
         const mo = parseInt(dateStr.slice(5, 7)) - 1
@@ -142,13 +142,18 @@ export function ChartContainer({ candles, chartType, previousClose }: ChartConta
         const marketOpen = Math.floor(Date.UTC(y, mo, d, MARKET_OPEN_HOUR, MARKET_OPEN_MIN) / 1000) as UTCTimestamp
         const marketClose = Math.floor(Date.UTC(y, mo, d, MARKET_CLOSE_HOUR, MARKET_CLOSE_MIN) / 1000) as UTCTimestamp
 
-        // 09:00 앵커: 데이터가 09:00보다 늦게 시작하면 빈 포인트 추가
-        if (lineData.length === 0 || (lineData[0].time as number) > (marketOpen as number)) {
-          lineData.unshift({ time: marketOpen } as WhitespaceData)
+        // 정렬된 데이터에서 첫/마지막 값 가져오기
+        const sortedData = lineData.filter((p): p is { time: UTCTimestamp; value: number } => 'value' in p)
+        const firstValue = sortedData[0]?.value
+        const lastValue = sortedData[sortedData.length - 1]?.value
+
+        // 09:00 앵커: 데이터가 09:00보다 늦게 시작하면 시가로 포인트 추가
+        if (firstValue !== undefined && (sortedData[0].time as number) > (marketOpen as number)) {
+          lineData.unshift({ time: marketOpen, value: firstValue })
         }
-        // 15:30 앵커: 데이터가 15:30까지 없으면 빈 포인트 추가
-        if (lineData.length === 0 || (lineData[lineData.length - 1].time as number) < (marketClose as number)) {
-          lineData.push({ time: marketClose } as WhitespaceData)
+        // 15:30 앵커: 마지막 데이터 이후 빈 시간을 마지막 종가로 연장
+        if (lastValue !== undefined && (sortedData[sortedData.length - 1].time as number) < (marketClose as number)) {
+          lineData.push({ time: marketClose, value: lastValue })
         }
       }
 
@@ -157,11 +162,25 @@ export function ChartContainer({ candles, chartType, previousClose }: ChartConta
     }
 
     if (candles.length > 0) {
-      // 모든 차트 타입에서 fitContent 사용 (인트라데이는 앵커 포인트로 범위 확정)
-      chart.timeScale().fitContent()
+      const isIntradayChart = candles[0].date.includes('T')
+
+      if (isIntradayChart) {
+        // 1일 분봉: fixEdge 해제 후 09:00~15:30 범위 고정
+        chart.timeScale().applyOptions({ fixLeftEdge: false, fixRightEdge: false })
+        const dateStr = candles[0].date.slice(0, 10)
+        const y = parseInt(dateStr.slice(0, 4))
+        const mo = parseInt(dateStr.slice(5, 7)) - 1
+        const d = parseInt(dateStr.slice(8, 10))
+        const marketOpen = Math.floor(Date.UTC(y, mo, d, MARKET_OPEN_HOUR, MARKET_OPEN_MIN) / 1000) as UTCTimestamp
+        const marketClose = Math.floor(Date.UTC(y, mo, d, MARKET_CLOSE_HOUR, MARKET_CLOSE_MIN) / 1000) as UTCTimestamp
+        chart.timeScale().setVisibleRange({ from: marketOpen, to: marketClose })
+      } else {
+        // 일봉/주봉/월봉: fixEdge 복원 후 fitContent
+        chart.timeScale().applyOptions({ fixLeftEdge: true, fixRightEdge: true })
+        chart.timeScale().fitContent()
+      }
 
       // 1일 분봉 차트에서 전일 종가 기준선 표시
-      const isIntradayChart = candles[0].date.includes('T')
       if (isIntradayChart && previousClose && seriesRef.current) {
         seriesRef.current.createPriceLine({
           price: previousClose,
