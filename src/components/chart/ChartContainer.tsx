@@ -13,9 +13,16 @@ import {
   CandlestickSeries,
   LineSeries,
   LineStyle,
+  UTCTimestamp,
 } from 'lightweight-charts'
 import { ChartCandle } from '@/types/stock'
 import { toCandlestickData, toLineData } from './chart-data-utils'
+
+// 한국 주식시장 정규장 시간 (KST)
+const MARKET_OPEN_HOUR = 9
+const MARKET_OPEN_MIN = 0
+const MARKET_CLOSE_HOUR = 15
+const MARKET_CLOSE_MIN = 30
 
 interface ChartContainerProps {
   // 렌더링할 캔들 데이터 배열
@@ -126,23 +133,36 @@ export function ChartContainer({ candles, chartType, previousClose }: ChartConta
       seriesRef.current = lineSeries
     }
 
-    // 데이터가 있을 때만 전체 범위로 맞춤
     if (candles.length > 0) {
-      chart.timeScale().fitContent()
-    }
+      const isIntraday = candles[0].date.includes('T')
 
-    // 1일 분봉 차트에서 전일 종가 기준선 표시
-    // 업계 표준: 인트라데이 차트의 기준선은 전일 종가 (네이버증권, 키움HTS, TradingView 등)
-    const isIntraday = candles.length > 0 && candles[0].date.includes('T')
-    if (isIntraday && previousClose && seriesRef.current) {
-      seriesRef.current.createPriceLine({
-        price: previousClose,
-        color: '#f59e0b',
-        lineWidth: 2,
-        lineStyle: LineStyle.Dashed,
-        axisLabelVisible: true,
-        title: '전일종가',
-      })
+      if (isIntraday) {
+        // 1일 분봉 차트: 시간축을 09:00~15:30 고정
+        // 장중에는 데이터가 없는 미래 시간이 빈 공간으로 표시됨
+        const dateStr = candles[0].date.slice(0, 10) // "YYYY-MM-DD"
+        const y = parseInt(dateStr.slice(0, 4))
+        const mo = parseInt(dateStr.slice(5, 7)) - 1
+        const d = parseInt(dateStr.slice(8, 10))
+        // Date.UTC를 KST 값으로 직접 사용 (타임존 변환 방지)
+        const marketOpen = Math.floor(Date.UTC(y, mo, d, MARKET_OPEN_HOUR, MARKET_OPEN_MIN) / 1000) as UTCTimestamp
+        const marketClose = Math.floor(Date.UTC(y, mo, d, MARKET_CLOSE_HOUR, MARKET_CLOSE_MIN) / 1000) as UTCTimestamp
+        chart.timeScale().setVisibleRange({ from: marketOpen, to: marketClose })
+      } else {
+        // 일봉/주봉/월봉: 데이터 범위에 맞춤
+        chart.timeScale().fitContent()
+      }
+
+      // 1일 분봉 차트에서 전일 종가 기준선 표시
+      if (isIntraday && previousClose && seriesRef.current) {
+        seriesRef.current.createPriceLine({
+          price: previousClose,
+          color: '#f59e0b',
+          lineWidth: 2,
+          lineStyle: LineStyle.Dashed,
+          axisLabelVisible: true,
+          title: '전일종가',
+        })
+      }
     }
 
     chartTypeRef.current = chartType
