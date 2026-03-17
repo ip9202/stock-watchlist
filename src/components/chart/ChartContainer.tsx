@@ -64,6 +64,8 @@ export function ChartContainer({ candles, chartType }: ChartContainerProps) {
         borderColor: '#e5e7eb',
         timeVisible: true,
         secondsVisible: false,
+        fixLeftEdge: true,
+        fixRightEdge: true,
       },
     })
 
