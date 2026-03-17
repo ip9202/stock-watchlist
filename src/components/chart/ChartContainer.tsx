@@ -105,9 +105,22 @@ export function ChartContainer({ candles, chartType, previousClose }: ChartConta
       candleSeries.setData(toCandlestickData(candles))
       seriesRef.current = candleSeries
     } else {
+      // 1일 분봉 차트에서 전일종가를 Y축 범위에 포함시키기 위해
+      // autoscaleInfoProvider를 설정하여 가격 스케일 확장
+      const isIntraday = candles.length > 0 && candles[0].date.includes('T')
       const lineSeries = chart.addSeries(LineSeries, {
         color: '#3b82f6',
         lineWidth: 2,
+        ...(isIntraday && previousClose ? {
+          autoscaleInfoProvider: (original: () => { priceRange: { minValue: number; maxValue: number } } | null) => {
+            const res = original()
+            if (res !== null) {
+              res.priceRange.minValue = Math.min(res.priceRange.minValue, previousClose)
+              res.priceRange.maxValue = Math.max(res.priceRange.maxValue, previousClose)
+            }
+            return res
+          },
+        } : {}),
       })
       lineSeries.setData(toLineData(candles))
       seriesRef.current = lineSeries
