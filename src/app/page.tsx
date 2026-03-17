@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { TrendingUp } from "lucide-react"
 import { StockSearch } from "@/components/dashboard/StockSearch"
 import { WatchlistManager } from "@/components/dashboard/WatchlistManager"
+import { MarketIndicators } from "@/components/dashboard/MarketIndicators"
 import { Footer } from "@/components/layout/Footer"
 import { apiFetch } from "@/lib/api"
 
@@ -51,6 +52,11 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* 시장 지표 */}
+        <div className="mb-8">
+          <MarketIndicators />
+        </div>
+
         {/* Search Section */}
         <div className="mb-8 relative z-50">
           <Card className="bg-white border border-gray-200 overflow-visible rounded-lg">

@@ -72,3 +72,28 @@ export type LinePeriod = '1D' | '3M' | '1Y' | '3Y' | '10Y'
 export type ChartMode =
   | { type: 'candle'; interval: CandleInterval }
   | { type: 'line'; period: LinePeriod }
+
+// 시장 지수 데이터 (SPEC-MARKET-001)
+export interface MarketIndex {
+  code: string          // '0001'=KOSPI, '1001'=KOSDAQ
+  name: string          // 'KOSPI' 또는 'KOSDAQ'
+  value: number         // 현재 지수값
+  change: number        // 전일대비 변동폭
+  changePercent: number // 등락률 (%)
+}
+
+// USD/KRW 환율 정보 (SPEC-MARKET-001 Task 2)
+export interface ExchangeRate {
+  base: string          // 'USD'
+  target: string        // 'KRW'
+  rate: number          // 현재 환율 (예: 1490.75)
+  date: string          // 환율 기준일 (YYYY-MM-DD)
+  change: number        // 전일 대비 변화량
+  changePercent: number // 전일 대비 변화율 (%)
+}
+
+// 환율 히스토리 항목
+export interface ExchangeRateHistory {
+  date: string   // YYYY-MM-DD
+  rate: number   // USD/KRW 환율
+}

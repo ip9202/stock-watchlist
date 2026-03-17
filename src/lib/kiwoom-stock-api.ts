@@ -14,7 +14,7 @@
 
 import axios from 'axios'
 import KiwoomTokenManager from './kiwoom-token-manager'
-import type { ChartData, ChartCandle } from '../types/stock'
+import type { ChartData, ChartCandle, MarketIndex } from '../types/stock'
 
 // @MX:ANCHOR: 키움 REST API 엔드포인트 - 모든 국내주식 조회에 단일 URL 사용
 // @MX:REASON: api-id 헤더로 TR 구분, GET이 아닌 POST 방식
@@ -23,6 +23,8 @@ const API_BASE_URL = 'https://api.kiwoom.com'
 const STKINFO_ENDPOINT = `${API_BASE_URL}/api/dostk/stkinfo`
 // @MX:NOTE: 차트 API 엔드포인트 - 일봉(ka10081), 주봉(ka10082) 조회에 사용
 const CHART_ENDPOINT = `${API_BASE_URL}/api/dostk/chart`
+// @MX:NOTE: 업종 현재가 엔드포인트 - KOSPI/KOSDAQ 지수 조회 (ka20001)
+const STKPC_ENDPOINT = `${API_BASE_URL}/api/dostk/stkpc`
 
 const REQUEST_TIMEOUT = 30000 // 30초
 // 차트 페이지네이션 최대 횟수 (무한 루프 방지)
@@ -105,6 +107,18 @@ interface KiwoomChartResponse {
   return_code?: number
   return_msg?: string
   stk_cd?: string
+  [key: string]: unknown
+}
+
+// ka20001 응답: 업종 현재가 조회 (KOSPI/KOSDAQ 지수)
+interface KiwoomIndexInfoResponse {
+  return_code?: number
+  return_msg?: string
+  inds_cd?: string     // 업종코드
+  inds_nm?: string     // 업종명
+  cur_prc?: string     // 현재지수 (부호 포함)
+  pred_pre?: string    // 전일대비 (부호 포함)
+  flu_rt?: string      // 등락률 (부호 포함, 예: "+1.23")
   [key: string]: unknown
 }
 
@@ -220,6 +234,134 @@ export class KiwoomStockAPI {
         low52w: this.parseSignedNumber(result.oyr_lwst)
       }
     })
+  }
+
+  /**
+   * 업종 현재가 조회 (SPEC-MARKET-001)
+   * TR: ka20001 - 업종 현재가
+   * @param indsCd - 업종코드 ('0001'=KOSPI, '1001'=KOSDAQ)
+   */
+  async fetchIndexInfo(indsCd: string): Promise<MarketIndex> {
+    // 업종코드 → 이름 매핑
+    const nameMap: Record<string, string> = {
+      '0001': 'KOSPI',
+      '1001': 'KOSDAQ',
+    }
+
+    return this.requestWithTokenRetry(async (token) => {
+      const response = await axios.post<KiwoomIndexInfoResponse>(
+        STKPC_ENDPOINT,
+        { inds_cd: indsCd },
+        {
+          headers: this.createHeaders(token, 'ka20001'),
+          timeout: REQUEST_TIMEOUT
+        }
+      )
+
+      const result = response.data
+
+      // return_code가 있고 0이 아닌 경우 에러
+      if (result.return_code !== undefined && result.return_code !== 0) {
+        throw new Error(`업종 현재가 조회 실패: ${result.return_msg || '알 수 없는 에러'}`)
+      }
+
+      // 지수값/변동폭/등락률 파싱 (부호 포함 문자열)
+      const value = this.parseSignedNumber(result.cur_prc) ?? 0
+      const change = this.parseSignedNumber(result.pred_pre) ?? 0
+      const changePercent = this.parseSignedNumber(result.flu_rt) ?? 0
+
+      return {
+        code: indsCd,
+        name: nameMap[indsCd] || result.inds_nm || indsCd,
+        value,
+        change,
+        changePercent,
+      }
+    })
+  }
+
+  /**
+   * 업종 차트 데이터 조회 (SPEC-MARKET-001)
+   * TR: ka20005(분봉), ka20006(일봉)
+   * @param indsCd - 업종코드 ('0001'=KOSPI, '1001'=KOSDAQ)
+   * @param period - 'minute' 또는 'daily'
+   * @param from - 조회 시작일 (YYYYMMDD)
+   * @param to - 조회 종료일/기준일 (YYYYMMDD)
+   * @param ticScope - 분봉 단위 (분봉일 때만 사용)
+   */
+  async fetchIndexChart(
+    indsCd: string,
+    period: string,
+    from: string,
+    to: string,
+    ticScope?: string
+  ): Promise<ChartCandle[]> {
+    const apiId = period === 'minute' ? 'ka20005' : 'ka20006'
+    const allCandles: ChartCandle[] = []
+    let contYn = 'Y'
+    let nextKey = ''
+    let pageCount = 0
+
+    while (contYn === 'Y' && pageCount < CHART_MAX_PAGES) {
+      const requestBody: Record<string, string> = {
+        inds_cd: indsCd,
+        base_dt: to,
+        upd_stkpc_tp: '1',
+      }
+      // 분봉 요청 시 tic_scope 파라미터 추가
+      if (period === 'minute' && ticScope) requestBody['tic_scope'] = ticScope
+
+      const currentContYn = pageCount === 0 ? 'N' : 'Y'
+      const currentNextKey = nextKey
+      const currentBody = { ...requestBody }
+
+      const response = await this.requestWithTokenRetry(async (token) =>
+        axios.post(
+          CHART_ENDPOINT,
+          currentBody,
+          {
+            headers: {
+              ...this.createHeaders(token, apiId),
+              'cont-yn': currentContYn,
+              'next-key': currentNextKey,
+            },
+            timeout: REQUEST_TIMEOUT
+          }
+        )
+      )
+
+      const result = response.data as KiwoomChartResponse
+      // return_code가 존재하고 0이 아닌 경우 에러
+      if (result.return_code !== undefined && result.return_code !== 0) {
+        throw new Error(`업종 차트 조회 실패: ${result.return_msg || '알 수 없는 에러'}`)
+      }
+
+      // 캔들 데이터 추출 (stk_*_pole_chart_qry 패턴 재사용)
+      const outputList: KiwoomChartCandleItem[] = this.extractChartCandles(result)
+      const candles = outputList.map(item => this.transformChartCandle(item))
+      allCandles.push(...candles)
+
+      // from 날짜 기반 페이지네이션 중단
+      if (from && candles.length > 0) {
+        const oldestDate = candles[candles.length - 1].date.replace(/[-T:]/g, '').slice(0, 8)
+        if (oldestDate <= from) break
+      }
+
+      const responseHeaders = response.headers || {}
+      contYn = responseHeaders['cont-yn'] || 'N'
+      nextKey = responseHeaders['next-key'] || ''
+      pageCount++
+    }
+
+    // from 날짜 이전 데이터 필터링
+    const filteredCandles = from
+      ? allCandles.filter(c => {
+          const candleDate = c.date.replace(/[-T:]/g, '').slice(0, 8)
+          return candleDate >= from
+        })
+      : allCandles
+
+    return filteredCandles
   }
 
   /**
