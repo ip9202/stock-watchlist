@@ -11,7 +11,8 @@ stock_watchlist/
 │   │   │   │   └── [symbol]/   # 개별 종목
 │   │   │   │       └── chart/  # 차트 데이터 API
 │   │   │   ├── watchlist/      # 관심종목 API
-│   │   │   ├── disclosures/    # 공시 정보 API
+│   │   │   ├── news/           # 뉴스 API (Node.js fetch)
+│   │   │   ├── disclosure/     # 공시 정보 API (Node.js fetch)
 │   │   │   └── health/         # 헬스체크 API
 │   │   ├── stock/[symbol]/     # 개별 종목 페이지
 │   │   ├── layout.tsx          # 루트 레이아웃
@@ -51,11 +52,12 @@ stock_watchlist/
 ├── prisma/                     # Prisma ORM
 │   ├── schema.prisma           # 데이터베이스 스키마
 │   └── migrations/             # 마이그레이션 파일
-├── scripts/                    # Python 데이터 수집 스크립트
-│   ├── fetch_stock_data.py     # 주식 데이터 수집
-│   ├── fetch_all_stocks.py     # 전종목 검색
-│   ├── fetch_stock_news.py     # 뉴스 수집
-│   └── fetch_disclosure.py     # 공시 수집
+├── deploy/                     # 배포 스크립트 및 설정
+│   └── deploy.sh               # PM2 배포 자동화
+├── scripts/                    # 유틸리티 스크립트 (앱에 미포함)
+│   ├── fetch_stocks_kiwoom_rest.py    # 키움 REST API 테스트
+│   ├── test-kiwoom-api.ts             # API 호환성 테스트
+│   └── debug-api-endpoints.ts         # 엔드포인트 디버그
 ├── public/                     # 정적 파일
 ├── .moai/                      # MoAI 설정 및 문서
 └── .env.local                  # 환경 변수 (로컬)
@@ -110,22 +112,22 @@ Disclosure  // 공시 정보
 - 타입 안전한 데이터베이스 쿼리
 
 ### 외부 데이터 소스
-- **PyKRX**: 한국거래소 공식 데이터
-- **네이버 금융**: 실시간 주가, 뉴스
-- **DART**: 전자공시 정보
+- **키움증권 REST API**: OAuth2 기반 주식 정보, 차트 데이터
+- **네이버 뉴스 API**: 종목별 뉴스 검색
+- **DART API**: 전자공시 정보 조회
 
 ## 데이터 흐름
 
 ```
 사용자 요청 → React Component → Next.js API Route
                                     ↓
-                            Python 스크립트 실행 (child_process)
+                    키움증권/네이버/DART REST API 호출 (Node.js fetch)
                                     ↓
-                    외부 API 호출 (PyKRX/네이버/DART)
+                            토큰 관리 (자동 갱신, 재시도)
                                     ↓
-                            데이터 파싱 및 가공
+                            데이터 파싱 및 캐싱
                                     ↓
-                            Prisma로 DB 저장
+                            Prisma로 DB 저장 (선택사항)
                                     ↓
                             클라이언트에 JSON 응답
                                     ↓
@@ -134,7 +136,9 @@ Disclosure  // 공시 정보
 
 ## 주요 의존 관계
 
-- React Components → API Routes (fetch)
-- API Routes → Python Scripts (spawn)
-- API Routes → Prisma Client
-- Python Scripts → External APIs (PyKRX, 네이버, DART)
+- React Components → API Routes (SWR, fetch)
+- API Routes → Kiwoom Token Manager (싱글톤)
+- Kiwoom Token Manager → Kiwoom Stock API (OAuth2)
+- API Routes → External APIs (네이버 News, DART)
+- API Routes → Prisma Client (선택적 저장)
+- Chart Components → chart-data-utils (중복제거, 시간 변환)

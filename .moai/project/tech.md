@@ -3,41 +3,40 @@
 ## 기술 스택 개요
 
 ### 프론트엔드
-- **Next.js** 15.5.2 - React 풀스택 프레임워크 (App Router)
-- **React** 19.1.0 - UI 라이브러리
+- **Next.js** 15 - React 풀스택 프레임워크 (App Router, basePath='/stocks')
+- **React** 19 - UI 라이브러리
 - **TypeScript** 5.x - 타입 안전한 JavaScript
 - **Tailwind CSS** v4 - 유틸리티 퍼스트 CSS 프레임워크
-- **lightweight-charts** 5.1.0 - TradingView OSS 차트 라이브러리 (동적 import `ssr: false`)
+- **lightweight-charts** 5.1.0 - TradingView OSS 차트 라이브러리 (동적 import, ssr:false)
+- **SWR** 2.3.6 - 데이터 페칭 및 캐싱
 - **Lucide React** - 아이콘 라이브러리
 
 ### 백엔드
 - **Next.js API Routes** - 서버리스 API 엔드포인트
 - **TypeScript** - 타입 안전한 API 구현
-- **키움증권 REST API** - OAuth2 기반 주식 데이터 API
-- **Fetch API** - TypeScript에서 직접 HTTP 호출
+- **키움증권 REST API** - OAuth2 기반 주식 정보/차트 API
+- **Node.js Fetch API** - TypeScript에서 직접 HTTP 호출 (Python 제거됨)
+- **사용자 정의 Token Manager** - 싱글톤 패턴, 토큰 자동 갱신, 중복 요청 제거
 
 ### 데이터베이스
-- **PostgreSQL** 15 - 관계형 데이터베이스
-- **Prisma** 6.15.0 - TypeScript ORM
+- **PostgreSQL** 15+ - 관계형 데이터베이스
+- **Prisma** 6.15.0+ - TypeScript ORM
 
 ### 상태 관리
-- **SWR** 2.3.6 - 데이터 가져오기 및 캐싱
-- React Hooks (useState, useEffect) - 로컬 상태
-
-### HTTP 클라이언트
-- **Axios** 1.11.0 - HTTP 요청 (Python 스크립트 내)
-- Fetch API - 클라이언트 HTTP 요청
+- **SWR** - API 응답 캐싱 및 동기화
+- React Hooks (useState, useEffect) - 로컬 상태 관리
 
 ### 개발 도구
 - **ESLint** 9 - 코드 린팅
-- **TypeScript Compiler** - 타입 체크 및 컴파일
-- **Turbopack** - Next.js 빌드 도구
-- **Vitest** - TypeScript 단위 테스트 (36 테스트, ~90% 커버리지)
+- **TypeScript** - 타입 체크 및 컴파일
+- **Turbopack** - Next.js 번들러
+- **Vitest** - 단위 테스트 (110 테스트, ~90% 커버리지)
 
 ### 배포
-- **Docker** - 컨테이너화
-- **Docker Compose** - 로컬 개발 환경
-- **Railway** - 클라우드 배포 플랫폼
+- **PM2** - Node.js 프로세스 관리
+- **Nginx** - 웹 서버/리버스 프록시
+- **PostgreSQL** - 서버 데이터베이스
+- 배포 플랫폼: ip9202.site (port 3005, basePath='/stocks')
 
 ## 프레임워크 선정 이유
 
@@ -60,104 +59,95 @@
 - **커스터마이징**: 디자인 시스템 구축 용이
 - **v4**: 향상된 성능과 개발자 경험
 
-### Python + PyKRX
-- **공식 데이터**: 한국거래소가 제공하는 무료 API
-- **안정성**: 공식 지원으로 데이터 신뢰성 보장
-- **간편함**: 한국 주식 데이터 쉽게 접근
+### 키움증권 REST API
+- **공식 데이터**: 실시간 주식 정보 및 차트 데이터
+- **OAuth2 인증**: 앱 키 기반 보안 인증
+- **동적 응답 처리**: 차트 API 응답 구조 자동 탐색
+- **페이지네이션**: cont-yn/next-key 기반 다중 페이지 처리
 
 ## 개발 환경 요구사항
 
 ### 필수
-- **Node.js** 18 이상
-- **Python** 3.12 이상
-- **Docker** & **Docker Compose**
+- **Node.js** 20+ (v25.2.1 권장)
+- **PostgreSQL** 15+ (로컬: `brew services start postgresql@18`)
 - **Git**
 
 ### 권장
-- **pnpm** 또는 **npm** (패키지 관리자)
+- **npm** 또는 **pnpm** (패키지 관리자)
 - **VS Code** (IDE)
-- **PostgreSQL** 15 (로컬 개발용)
+- Prisma CLI (로컬: `./node_modules/.bin/prisma`)
 
 ## 빌드 및 배포 설정
 
 ### 개발 스크립트
-```json
-{
-  "dev": "next dev --turbopack",           // 개발 서버
-  "build": "prisma generate && prisma migrate deploy && next build --turbopack",
-  "start": "next start",                   // 프로덕션 서버
-  "db:generate": "prisma generate",        // Prisma 클라이언트 생성
-  "db:migrate": "prisma migrate dev",      // 마이그레이션 실행
-  "db:studio": "prisma studio"             // Prisma Studio GUI
-}
-```
+- `npm run dev` - 개발 서버 (localhost:3000, Turbopack)
+- `npm run build` - 프로덕션 빌드 (standalone, prisma generate 포함)
+- `npm start` - 프로덕션 서버
+- `npm run test` - 테스트 실행 (Vitest)
+- `npm run build:prod` - 배포용 빌드 (`prisma generate && next build`)
 
-### Docker 설정
-- **멀티스테이지 빌드**: 의존성 캐싱으로 빠른 빌드
-- **Python 포함**: Node.js 이미지에 Python 설치
-- **환경 변수**: `.env.local`에서 관리
-- **포트**: 3000 (애플리케이션), 5432 (PostgreSQL)
+### 배포 설정
+- **배포 대상**: ip9202.site/stocks (port 3005)
+- **프로세스 관리**: PM2 (`pm2 start stock-watchlist`)
+- **웹 서버**: Nginx (3-stage location 설정)
+- **데이터베이스**: PostgreSQL 15 (stock_watchlist_prod)
+- **배포 스크립트**: `./deploy/deploy.sh` (자동화)
 
 ### 환경 변수
-```bash
-# 데이터베이스
-DATABASE_URL=postgresql://user:password@host:port/database
-SHADOW_DATABASE_URL=postgresql://user:password@host:port/shadow_db
 
-# 키움증권 REST API (필수)
-KIWOOM_APP_KEY=your_kiwoom_app_key
-KIWOOM_SECRET_KEY=your_kiwoom_secret_key
+**필수 (로컬 및 서버)**:
+- `DATABASE_URL` - PostgreSQL 연결 문자열
+- `KIWOOM_APP_KEY` - 키움증권 앱 키
+- `KIWOOM_SECRET_KEY` - 키움증권 시크릿 키
 
-# 기타 API 키
-NAVER_CLIENT_ID=your_naver_client_id
-NAVER_CLIENT_SECRET=your_naver_client_secret
-DART_API_KEY=your_dart_api_key
+**선택사항**:
+- `NAVER_CLIENT_ID` - 네이버 뉴스 API 클라이언트 ID
+- `NAVER_CLIENT_SECRET` - 네이버 뉴스 API 시크릿
+- `DART_API_KEY` - DART 공시 API 키
 
-# Node.js
-NODE_ENV=production/development
-PORT=3000
-```
-
-## Railway 배포 구성
-
-### 서비스
-1. **Web Service** (Next.js 애플리케이션)
-2. **PostgreSQL** (Railway 관리형 데이터베이스)
-
-### 자동화
-- **GitHub 통합**: Push 시 자동 재배포
-- **Docker 빌드**: 멀티스테이지 빌드 사용
-- **환경 변수**: Railway 대시보드에서 관리
-- **Health Check**: `/api/health` 엔드포인트
+**배포 환경**:
+- `NODE_ENV=production`
+- `PORT=3005`
+- `HOSTNAME=0.0.0.0`
+- `PYTHON_PATH=/usr/bin/python3` (서버 환경)
 
 ## 아키텍처 패턴
 
 ### 클라이언트-서버 분리
-- **프론트엔드**: React Server Components + Client Components
+- **프론트엔드**: React 클라이언트 컴포넌트 (SWR, Hooks)
 - **백엔드**: Next.js API Routes (RESTful)
 - **데이터베이스**: PostgreSQL + Prisma ORM
+- **basePath**: '/stocks' (Nginx 라우팅)
 
 ### 데이터 수집 패턴
-- **REST API**: 키움증권 REST API를 통한 직접 호출
-- **토큰 관리**: OAuth2 토큰 자동 갱신 및 캐싱
-- **캐싱**: 종목 리스트 7일, 개별 시세 30초 TTL
-- **에러 처리**: 3회 재시도 + 지수 백오프
+- **REST API**: 키움증권 REST API 직접 호출 (Node.js fetch)
+- **토큰 관리**: Kiwoom Token Manager (싱글톤, 자동 갱신, Promise 중복제거)
+- **캐싱**: 종목 리스트 7일, 개별 시세 30초, 차트 캐시 (기간별 1시간~1일)
+- **에러 처리**: [8005] 토큰 만료 자동 재시도 1회, 3회 총 재시도
+
+### 차트 패턴
+- **API 매핑**: 봉형(일봉/주봉/월봉) + 기간별(1일/3개월/1년/3년/10년)
+- **분봉 지원**: 당일 분 단위 가격 변동 (ka10080, tic_scope=1)
+- **데이터 처리**: chart-data-utils로 중복 제거, 시간 변환
+- **UI 상호 배타성**: 봉 타입 선택 시 캔들/기간 선택 시 라인 (동시 불가)
 
 ### 상태 관리 패턴
-- **서버 상태**: SWR으로 API 데이터 캐싱
-- **로컬 상태**: React Hooks로 컴포넌트 상태 관리
-- **전역 상태**: (계획) Context API 또는 Zustand
+- **서버 상태**: SWR로 API 데이터 캐싱 및 동기화
+- **로컬 상태**: React Hooks (useState, useEffect)
+- **사용자 데이터**: PostgreSQL Watchlist (선택적)
 
 ## 보안 고려사항
 
-- **API 키**: 환경 변수로 관리, Git에 커밋하지 않음
-- **SQL Injection**: Prisma ORM으로 자동 방어
-- **CORS**: (계획) 적절한 출처 허용
-- **Rate Limiting**: (계획) API 호출 제한
+- **API 키**: 환경 변수 관리 (.env.local, 서버 env)
+- **OAuth2**: 키움증권 토큰 기반 인증
+- **SQL Injection**: Prisma ORM 자동 방어
+- **데이터 검증**: env.ts 환경 변수 필수 확인
+- **CORS**: Nginx 기본 설정 (필요시 추가)
 
 ## 성능 최적화
 
-- **SWR 캐싱**: 클라이언트 데이터 캐싱
-- **서버 컴포넌트**: 불필요한 JavaScript 번들 감소
-- **이미지 최적화**: (계획) Next.js Image 컴포넌트
-- **코드 분할**: 동적 import로 초기 로딩 감소
+- **SWR 캐싱**: API 응답 캐싱 및 자동 동기화
+- **Lazy Loading**: Chart 컴포넌트 동적 import (ssr:false)
+- **데이터 캐싱**: 종목/차트 다층 TTL (7일/30초/1시간/1일)
+- **중복 제거**: chart-data-utils로 pagination 중복 제거
+- **번들 최적화**: Turbopack, tree-shaking
