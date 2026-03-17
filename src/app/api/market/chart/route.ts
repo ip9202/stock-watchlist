@@ -9,10 +9,10 @@ const CACHE_TTL_MINUTE = 60
 // 일봉 캐시 TTL: 1시간 (3600초)
 const CACHE_TTL_DAILY = 3600
 
-// 업종코드 매핑: kospi → 0001, kosdaq → 1001
+// 업종코드 매핑: kospi → 001, kosdaq → 101 (3자리)
 const INDEX_CODE_MAP: Record<string, string> = {
-  kospi: '0001',
-  kosdaq: '1001',
+  kospi: '001',
+  kosdaq: '101',
 }
 
 // 유효한 period 값

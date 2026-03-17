@@ -24,7 +24,8 @@ const STKINFO_ENDPOINT = `${API_BASE_URL}/api/dostk/stkinfo`
 // @MX:NOTE: 차트 API 엔드포인트 - 일봉(ka10081), 주봉(ka10082) 조회에 사용
 const CHART_ENDPOINT = `${API_BASE_URL}/api/dostk/chart`
 // @MX:NOTE: 업종 현재가 엔드포인트 - KOSPI/KOSDAQ 지수 조회 (ka20001)
-const STKPC_ENDPOINT = `${API_BASE_URL}/api/dostk/stkpc`
+// /api/dostk/stkpc가 아닌 /api/dostk/sect가 올바른 경로
+const SECT_ENDPOINT = `${API_BASE_URL}/api/dostk/sect`
 
 const REQUEST_TIMEOUT = 30000 // 30초
 // 차트 페이지네이션 최대 횟수 (무한 루프 방지)
@@ -242,16 +243,19 @@ export class KiwoomStockAPI {
    * @param indsCd - 업종코드 ('0001'=KOSPI, '1001'=KOSDAQ)
    */
   async fetchIndexInfo(indsCd: string): Promise<MarketIndex> {
-    // 업종코드 → 이름 매핑
-    const nameMap: Record<string, string> = {
-      '0001': 'KOSPI',
-      '1001': 'KOSDAQ',
+    // 업종코드 → 이름/시장구분 매핑
+    // 키움 업종코드: 001=코스피종합, 101=코스닥종합 (3자리)
+    const indexConfig: Record<string, { name: string; mrktTp: string }> = {
+      '001': { name: 'KOSPI', mrktTp: '0' },
+      '101': { name: 'KOSDAQ', mrktTp: '1' },
     }
+    const config = indexConfig[indsCd]
+    const mrktTp = config?.mrktTp ?? '0'
 
     return this.requestWithTokenRetry(async (token) => {
       const response = await axios.post<KiwoomIndexInfoResponse>(
-        STKPC_ENDPOINT,
-        { inds_cd: indsCd },
+        SECT_ENDPOINT,
+        { mrkt_tp: mrktTp, inds_cd: indsCd },
         {
           headers: this.createHeaders(token, 'ka20001'),
           timeout: REQUEST_TIMEOUT
@@ -272,7 +276,7 @@ export class KiwoomStockAPI {
 
       return {
         code: indsCd,
-        name: nameMap[indsCd] || result.inds_nm || indsCd,
+        name: config?.name || result.inds_nm || indsCd,
         value,
         change,
         changePercent,

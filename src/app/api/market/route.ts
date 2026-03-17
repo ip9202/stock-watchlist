@@ -7,9 +7,9 @@ import { KiwoomStockAPI } from '@/lib/kiwoom-stock-api'
 // 지수 캐시 TTL: 1분 (60초) - 실시간에 가까운 갱신
 const CACHE_TTL_INDEX = 60
 
-// 업종코드: KOSPI=0001, KOSDAQ=1001
-const KOSPI_CODE = '0001'
-const KOSDAQ_CODE = '1001'
+// 업종코드: KOSPI=001, KOSDAQ=101 (3자리)
+const KOSPI_CODE = '001'
+const KOSDAQ_CODE = '101'
 
 // 캐시 키
 const CACHE_KEY_MARKET = 'market_index_kospi_kosdaq'
@@ -21,10 +21,10 @@ interface MarketIndexData {
 }
 
 /**
- * KOSPI/KOSDAQ 지수 조회 API (SPEC-MARKET-001 Task 1)
+ * KOSPI/KOSDAQ 지수 조회 API (SPEC-MARKET-001)
  * GET /api/market
  *
- * 키움증권 ka20001 TR을 사용하여 KOSPI, KOSDAQ 지수를 병렬 조회
+ * 키움증권 ka20001 TR + /api/dostk/sect 엔드포인트로 KOSPI, KOSDAQ 지수 병렬 조회
  * 캐시 TTL: 1분
  */
 export async function GET(_request: NextRequest) {
