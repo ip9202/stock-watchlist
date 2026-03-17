@@ -116,23 +116,27 @@ export function ChartContainer({ candles, chartType, previousClose }: ChartConta
     // 데이터가 있을 때만 전체 범위로 맞춤
     if (candles.length > 0) {
       chart.timeScale().fitContent()
-
-      // 1일 분봉 차트에서 전일 종가 기준선 표시
-      // 업계 표준: 인트라데이 차트의 기준선은 전일 종가 (네이버증권, 키움HTS, TradingView 등)
-      if (candles[0].date.includes('T') && previousClose && seriesRef.current) {
-        seriesRef.current.createPriceLine({
-          price: previousClose,
-          color: '#f59e0b',
-          lineWidth: 1,
-          lineStyle: LineStyle.Dashed,
-          axisLabelVisible: true,
-          title: '전일종가',
-        })
-      }
     }
 
     chartTypeRef.current = chartType
   }, [candles, chartType])
+
+  // 1일 분봉 차트에서 전일 종가 기준선 표시 (별도 effect로 분리)
+  // SWR 특성상 차트 데이터와 상세 데이터 로딩 시점이 다를 수 있으므로
+  // previousClose가 나중에 도착해도 기준선이 추가되도록 함
+  useEffect(() => {
+    if (!seriesRef.current || !previousClose || candles.length === 0) return
+    if (!candles[0].date.includes('T')) return
+
+    seriesRef.current.createPriceLine({
+      price: previousClose,
+      color: '#f59e0b',
+      lineWidth: 1,
+      lineStyle: LineStyle.Dashed,
+      axisLabelVisible: true,
+      title: '전일종가',
+    })
+  }, [previousClose, candles])
 
   return (
     <div
