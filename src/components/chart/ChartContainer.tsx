@@ -113,6 +113,18 @@ export function ChartContainer({ candles, chartType }: ChartContainerProps) {
     // 데이터가 있을 때만 전체 범위로 맞춤
     if (candles.length > 0) {
       chart.timeScale().fitContent()
+
+      // 1일 분봉 차트에서 시가선 표시 (날짜에 'T' 포함 = 분봉 데이터)
+      if (candles[0].date.includes('T') && seriesRef.current) {
+        seriesRef.current.createPriceLine({
+          price: candles[0].open,
+          color: '#f59e0b',
+          lineWidth: 1,
+          lineStyle: 2, // Dashed
+          axisLabelVisible: true,
+          title: '시가',
+        })
+      }
     }
 
     chartTypeRef.current = chartType
