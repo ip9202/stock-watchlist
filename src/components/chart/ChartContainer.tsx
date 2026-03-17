@@ -60,6 +60,7 @@ export function ChartContainer({ candles, chartType, previousClose }: ChartConta
       layout: {
         background: { type: ColorType.Solid, color: '#ffffff' },
         textColor: '#374151',
+        attributionLogo: false,
       },
       grid: {
         vertLines: { color: '#f3f4f6' },

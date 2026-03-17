@@ -38,6 +38,7 @@ function MiniChartInner({ data, color, height = 120 }: MiniChartProps) {
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
         textColor: 'transparent',
+        attributionLogo: false,
       },
       grid: {
         vertLines: { visible: false },

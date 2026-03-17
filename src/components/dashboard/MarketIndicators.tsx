@@ -103,7 +103,7 @@ function getDateRange(daysBack: number) {
  * → UTCTimestamp (초 단위 숫자)로 변환
  */
 function candlesToMiniData(candles: ChartCandle[]): MiniChartData {
-  return candles.map((c) => {
+  const data = candles.map((c) => {
     if (c.date.includes('T')) {
       // 분봉: ISO datetime → UTCTimestamp
       const [datePart, timePart] = c.date.split('T')
@@ -115,6 +115,8 @@ function candlesToMiniData(candles: ChartCandle[]): MiniChartData {
     // 일봉 이상: YYYY-MM-DD 문자열 그대로 사용
     return { time: c.date, value: c.close }
   })
+  // lightweight-charts는 시간 오름차순 필수 — 키움 API는 최신→과거 순서로 반환
+  return data.sort((a, b) => (a.time > b.time ? 1 : a.time < b.time ? -1 : 0))
 }
 
 /**
