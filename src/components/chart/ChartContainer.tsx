@@ -12,6 +12,7 @@ import {
   SeriesType,
   CandlestickSeries,
   LineSeries,
+  LineStyle,
 } from 'lightweight-charts'
 import { ChartCandle } from '@/types/stock'
 import { toCandlestickData, toLineData } from './chart-data-utils'
@@ -21,6 +22,8 @@ interface ChartContainerProps {
   candles: ChartCandle[]
   // 차트 표시 타입 (캔들스틱 또는 라인)
   chartType: 'candlestick' | 'line'
+  // 전일 종가 (1일 분봉 차트에서 기준선 표시용)
+  previousClose?: number
 }
 
 /**
@@ -28,7 +31,7 @@ interface ChartContainerProps {
  * - 반드시 'use client' + dynamic import + ssr:false 조합으로 사용
  * - chartType 변경 시 차트 인스턴스를 재생성하지 않고 시리즈만 교체
  */
-export function ChartContainer({ candles, chartType }: ChartContainerProps) {
+export function ChartContainer({ candles, chartType, previousClose }: ChartContainerProps) {
   // 차트가 마운트될 DOM 컨테이너 ref
   const containerRef = useRef<HTMLDivElement>(null)
   // 차트 인스턴스 ref (리렌더링 간 유지)
@@ -114,15 +117,16 @@ export function ChartContainer({ candles, chartType }: ChartContainerProps) {
     if (candles.length > 0) {
       chart.timeScale().fitContent()
 
-      // 1일 분봉 차트에서 시가선 표시 (날짜에 'T' 포함 = 분봉 데이터)
-      if (candles[0].date.includes('T') && seriesRef.current) {
+      // 1일 분봉 차트에서 전일 종가 기준선 표시
+      // 업계 표준: 인트라데이 차트의 기준선은 전일 종가 (네이버증권, 키움HTS, TradingView 등)
+      if (candles[0].date.includes('T') && previousClose && seriesRef.current) {
         seriesRef.current.createPriceLine({
-          price: candles[0].open,
+          price: previousClose,
           color: '#f59e0b',
           lineWidth: 1,
-          lineStyle: 2, // Dashed
+          lineStyle: LineStyle.Dashed,
           axisLabelVisible: true,
-          title: '시가',
+          title: '전일종가',
         })
       }
     }

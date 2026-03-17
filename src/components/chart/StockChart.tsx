@@ -142,6 +142,16 @@ export function StockChart({ symbol }: StockChartProps) {
     }
   )
 
+  // 1일 차트에서 전일 종가 기준선 표시를 위해 주식 상세 데이터 페칭
+  const detailUrl = mode.type === 'line' && mode.period === '1D'
+    ? apiUrl(`/api/stocks/${symbol}`)
+    : null
+  const { data: detailData } = useSWR<{ success: boolean; data: { previousClose?: number } }>(
+    detailUrl,
+    fetcher,
+    { revalidateOnFocus: false }
+  )
+
   return (
     <div className="w-full">
       {/* 차트 모드 선택 툴바 */}
@@ -183,6 +193,7 @@ export function StockChart({ symbol }: StockChartProps) {
           <ChartContainer
             candles={data.data.candles}
             chartType={chartType}
+            previousClose={detailData?.data?.previousClose}
           />
         )}
       </div>
