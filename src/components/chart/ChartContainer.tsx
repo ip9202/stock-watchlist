@@ -77,6 +77,7 @@ export function ChartContainer({ candles, chartType, previousClose }: ChartConta
         secondsVisible: false,
         fixLeftEdge: true,
         fixRightEdge: true,
+        rightOffset: 2,
       },
     })
 
@@ -134,14 +135,14 @@ export function ChartContainer({ candles, chartType, previousClose }: ChartConta
 
       if (isIntraday && lineData.length > 0) {
         // 1일 분봉 차트: 09:00~15:30 시간축 고정
-        // 실제 데이터 포인트로 시간축 앵커를 생성하여 확실한 범위 확장
         const dateStr = candles[0].date.slice(0, 10)
         const y = parseInt(dateStr.slice(0, 4))
         const mo = parseInt(dateStr.slice(5, 7)) - 1
         const d = parseInt(dateStr.slice(8, 10))
         const marketOpen = Math.floor(Date.UTC(y, mo, d, MARKET_OPEN_HOUR, MARKET_OPEN_MIN) / 1000) as UTCTimestamp
+        const marketClose = Math.floor(Date.UTC(y, mo, d, MARKET_CLOSE_HOUR, MARKET_CLOSE_MIN) / 1000) as UTCTimestamp
 
-        // 정렬된 데이터에서 첫 값 가져오기
+        // 정렬된 데이터에서 첫/마지막 값 가져오기
         const sortedData = lineData.filter((p): p is { time: UTCTimestamp; value: number } => 'value' in p)
         const firstValue = sortedData[0]?.value
 
@@ -149,7 +150,21 @@ export function ChartContainer({ candles, chartType, previousClose }: ChartConta
         if (firstValue !== undefined && (sortedData[0].time as number) > (marketOpen as number)) {
           lineData.unshift({ time: marketOpen, value: firstValue })
         }
-        // 15:30 이후는 빈 공간 유지 — setVisibleRange로 시간축 범위만 고정
+
+        // 08:30~09:00 빈 슬롯 — 09:00 라벨이 캔버스 안쪽에 위치하도록 좌측 여백 확보
+        const preMarketStart = Math.floor(Date.UTC(y, mo, d, 8, 30) / 1000) as UTCTimestamp
+        for (let t = preMarketStart as number; t < (marketOpen as number); t += 300) {
+          lineData.unshift({ time: t as UTCTimestamp })
+        }
+
+        // 15:30~16:00 빈 시간 슬롯 — 시간축 우측 확장 + 15:30 라벨 잘림 방지
+        const lastTime = sortedData[sortedData.length - 1].time as number
+        const postMarketEnd = Math.floor(Date.UTC(y, mo, d, 16, 0) / 1000) as UTCTimestamp
+        for (let t = lastTime + 1800; t <= (postMarketEnd as number); t += 1800) {
+          lineData.push({ time: t as UTCTimestamp })
+        }
+        // 16:00 정확한 시간에 빈 슬롯 보장
+        lineData.push({ time: postMarketEnd })
       }
 
       lineSeries.setData(lineData)
@@ -166,9 +181,10 @@ export function ChartContainer({ candles, chartType, previousClose }: ChartConta
         const y = parseInt(dateStr.slice(0, 4))
         const mo = parseInt(dateStr.slice(5, 7)) - 1
         const d = parseInt(dateStr.slice(8, 10))
-        const marketOpen = Math.floor(Date.UTC(y, mo, d, MARKET_OPEN_HOUR, MARKET_OPEN_MIN) / 1000) as UTCTimestamp
-        const marketClose = Math.floor(Date.UTC(y, mo, d, MARKET_CLOSE_HOUR, MARKET_CLOSE_MIN) / 1000) as UTCTimestamp
-        chart.timeScale().setVisibleRange({ from: marketOpen, to: marketClose })
+        // 08:30~16:00 — 09:00/15:30 라벨이 캔버스 안쪽에 위치하도록 양쪽 여백
+        const visibleStart = Math.floor(Date.UTC(y, mo, d, 8, 30) / 1000) as UTCTimestamp
+        const visibleEnd = Math.floor(Date.UTC(y, mo, d, 16, 0) / 1000) as UTCTimestamp
+        chart.timeScale().setVisibleRange({ from: visibleStart, to: visibleEnd })
       } else {
         // 일봉/주봉/월봉: fixEdge 복원 후 fitContent
         chart.timeScale().applyOptions({ fixLeftEdge: true, fixRightEdge: true })

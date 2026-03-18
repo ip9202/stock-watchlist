@@ -165,6 +165,8 @@ export function MarketIndicators() {
           change: idx?.change ?? 0,
           changePercent: idx?.changePercent ?? 0,
           candles,
+          // 전일종가 = 현재가 - 변동폭
+          previousClose: idx ? idx.value - idx.change : undefined,
           isLoading: marketLoading,
         }
       }
@@ -178,6 +180,7 @@ export function MarketIndicators() {
           change: idx?.change ?? 0,
           changePercent: idx?.changePercent ?? 0,
           candles,
+          previousClose: idx ? idx.value - idx.change : undefined,
           isLoading: marketLoading,
         }
       }
@@ -191,6 +194,7 @@ export function MarketIndicators() {
           change: ex?.change ?? 0,
           changePercent: ex?.changePercent ?? 0,
           candles,
+          previousClose: undefined,
           isLoading: exchangeLoading,
         }
       }
@@ -247,6 +251,7 @@ export function MarketIndicators() {
               <ChartContainer
                 candles={tabData.candles}
                 chartType="line"
+                previousClose={tabData.previousClose}
               />
             ) : (
               <div className="h-[320px] sm:h-[400px] bg-gray-50 rounded-lg flex items-center justify-center">
