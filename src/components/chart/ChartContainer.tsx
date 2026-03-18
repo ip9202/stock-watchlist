@@ -14,7 +14,6 @@ import {
   LineSeries,
   LineStyle,
   UTCTimestamp,
-  WhitespaceData,
 } from 'lightweight-charts'
 import { ChartCandle } from '@/types/stock'
 import { toCandlestickData, toLineData } from './chart-data-utils'
@@ -141,21 +140,16 @@ export function ChartContainer({ candles, chartType, previousClose }: ChartConta
         const mo = parseInt(dateStr.slice(5, 7)) - 1
         const d = parseInt(dateStr.slice(8, 10))
         const marketOpen = Math.floor(Date.UTC(y, mo, d, MARKET_OPEN_HOUR, MARKET_OPEN_MIN) / 1000) as UTCTimestamp
-        const marketClose = Math.floor(Date.UTC(y, mo, d, MARKET_CLOSE_HOUR, MARKET_CLOSE_MIN) / 1000) as UTCTimestamp
 
-        // 정렬된 데이터에서 첫/마지막 값 가져오기
+        // 정렬된 데이터에서 첫 값 가져오기
         const sortedData = lineData.filter((p): p is { time: UTCTimestamp; value: number } => 'value' in p)
         const firstValue = sortedData[0]?.value
-        const lastValue = sortedData[sortedData.length - 1]?.value
 
         // 09:00 앵커: 데이터가 09:00보다 늦게 시작하면 시가로 포인트 추가
         if (firstValue !== undefined && (sortedData[0].time as number) > (marketOpen as number)) {
           lineData.unshift({ time: marketOpen, value: firstValue })
         }
-        // 15:30 앵커: 마지막 데이터 이후 빈 시간을 마지막 종가로 연장
-        if (lastValue !== undefined && (sortedData[sortedData.length - 1].time as number) < (marketClose as number)) {
-          lineData.push({ time: marketClose, value: lastValue })
-        }
+        // 15:30 이후는 빈 공간 유지 — setVisibleRange로 시간축 범위만 고정
       }
 
       lineSeries.setData(lineData)

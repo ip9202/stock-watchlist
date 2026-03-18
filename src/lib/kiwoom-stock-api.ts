@@ -365,8 +365,14 @@ export class KiwoomStockAPI {
         })
       : allCandles
 
+    // 분봉(minute) 데이터: 가장 최근 거래일 데이터만 유지
+    // 장외 시간이나 주말에도 직전 거래일 차트를 볼 수 있도록
+    const resultCandles = period === 'minute' && filteredCandles.length > 0
+      ? this.filterLatestTradingDay(filteredCandles)
+      : filteredCandles
+
     // 업종 지수 가격은 100배 스케일 (564048 → 5640.48)
-    return filteredCandles.map(c => ({
+    return resultCandles.map(c => ({
       ...c,
       open: c.open / 100,
       high: c.high / 100,
