@@ -14,15 +14,14 @@ import {
   LineSeries,
   LineStyle,
   UTCTimestamp,
+  TickMarkType,
 } from 'lightweight-charts'
 import { ChartCandle } from '@/types/stock'
 import { toCandlestickData, toLineData } from './chart-data-utils'
 
-// 한국 주식시장 정규장 시간 (KST)
+// 한국 주식시장 정규장 시작 시간 (KST)
 const MARKET_OPEN_HOUR = 9
 const MARKET_OPEN_MIN = 0
-const MARKET_CLOSE_HOUR = 15
-const MARKET_CLOSE_MIN = 30
 
 interface ChartContainerProps {
   // 렌더링할 캔들 데이터 배열
@@ -78,6 +77,16 @@ export function ChartContainer({ candles, chartType, previousClose }: ChartConta
         fixLeftEdge: true,
         fixRightEdge: true,
         rightOffset: 2,
+        // 시간 라벨을 HH:MM 형식으로 강제 (09:00, 15:30 등 — 기본값은 "9:00" 처럼 패딩 없음)
+        tickMarkFormatter: (time: UTCTimestamp, tickMarkType: TickMarkType) => {
+          if (tickMarkType === TickMarkType.Time || tickMarkType === TickMarkType.TimeWithSeconds) {
+            const date = new Date((time as number) * 1000)
+            const h = String(date.getUTCHours()).padStart(2, '0')
+            const m = String(date.getUTCMinutes()).padStart(2, '0')
+            return `${h}:${m}`
+          }
+          return null // 날짜 라벨은 기본 포맷터 사용
+        },
       },
     })
 
@@ -140,7 +149,6 @@ export function ChartContainer({ candles, chartType, previousClose }: ChartConta
         const mo = parseInt(dateStr.slice(5, 7)) - 1
         const d = parseInt(dateStr.slice(8, 10))
         const marketOpen = Math.floor(Date.UTC(y, mo, d, MARKET_OPEN_HOUR, MARKET_OPEN_MIN) / 1000) as UTCTimestamp
-        const marketClose = Math.floor(Date.UTC(y, mo, d, MARKET_CLOSE_HOUR, MARKET_CLOSE_MIN) / 1000) as UTCTimestamp
 
         // 정렬된 데이터에서 첫/마지막 값 가져오기
         const sortedData = lineData.filter((p): p is { time: UTCTimestamp; value: number } => 'value' in p)
@@ -151,19 +159,19 @@ export function ChartContainer({ candles, chartType, previousClose }: ChartConta
           lineData.unshift({ time: marketOpen, value: firstValue })
         }
 
-        // 08:30~09:00 빈 슬롯 — 09:00 라벨이 캔버스 안쪽에 위치하도록 좌측 여백 확보
-        const preMarketStart = Math.floor(Date.UTC(y, mo, d, 8, 30) / 1000) as UTCTimestamp
+        // 08:00~09:00 빈 슬롯 — 시작 1시간 전 여백으로 09:00 라벨 잘림 방지
+        const preMarketStart = Math.floor(Date.UTC(y, mo, d, 8, 0) / 1000) as UTCTimestamp
         for (let t = preMarketStart as number; t < (marketOpen as number); t += 300) {
           lineData.unshift({ time: t as UTCTimestamp })
         }
 
-        // 15:30~16:00 빈 시간 슬롯 — 시간축 우측 확장 + 15:30 라벨 잘림 방지
+        // 15:30~16:30 빈 시간 슬롯 — 마감 1시간 후 여백으로 15:30 라벨 잘림 방지
         const lastTime = sortedData[sortedData.length - 1].time as number
-        const postMarketEnd = Math.floor(Date.UTC(y, mo, d, 16, 0) / 1000) as UTCTimestamp
+        const postMarketEnd = Math.floor(Date.UTC(y, mo, d, 16, 30) / 1000) as UTCTimestamp
         for (let t = lastTime + 1800; t <= (postMarketEnd as number); t += 1800) {
           lineData.push({ time: t as UTCTimestamp })
         }
-        // 16:00 정확한 시간에 빈 슬롯 보장
+        // 16:30 정확한 시간에 빈 슬롯 보장
         lineData.push({ time: postMarketEnd })
       }
 
@@ -181,9 +189,9 @@ export function ChartContainer({ candles, chartType, previousClose }: ChartConta
         const y = parseInt(dateStr.slice(0, 4))
         const mo = parseInt(dateStr.slice(5, 7)) - 1
         const d = parseInt(dateStr.slice(8, 10))
-        // 08:30~16:00 — 09:00/15:30 라벨이 캔버스 안쪽에 위치하도록 양쪽 여백
-        const visibleStart = Math.floor(Date.UTC(y, mo, d, 8, 30) / 1000) as UTCTimestamp
-        const visibleEnd = Math.floor(Date.UTC(y, mo, d, 16, 0) / 1000) as UTCTimestamp
+        // 08:00~16:30 — 정규장(09:00~15:30) 전후 1시간 여백으로 시간 라벨 잘림 방지
+        const visibleStart = Math.floor(Date.UTC(y, mo, d, 8, 0) / 1000) as UTCTimestamp
+        const visibleEnd = Math.floor(Date.UTC(y, mo, d, 16, 30) / 1000) as UTCTimestamp
         chart.timeScale().setVisibleRange({ from: visibleStart, to: visibleEnd })
       } else {
         // 일봉/주봉/월봉: fixEdge 복원 후 fitContent
