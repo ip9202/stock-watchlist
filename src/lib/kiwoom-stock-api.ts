@@ -209,8 +209,8 @@ export class KiwoomStockAPI {
         throw new Error(`종목 시세 조회 실패: ${result.return_msg || '알 수 없는 에러'}`)
       }
 
-      // @MX:NOTE: 부호 포함 문자열 처리 - "+190000" → 190000, "-52500" → 52500 (절대값)
-      const price = this.parseSignedNumber(result.cur_prc)
+      // @MX:NOTE: 현재가는 절대값으로 파싱 - "+190000" → 190000, "-52500" → 52500
+      const price = this.parseAbsolutePrice(result.cur_prc)
       const volume = this.parseNumber(result.trde_qty)
 
       // tradingValue: 직접 필드 없음 → trde_qty × abs(cur_prc) 계산 (REQ-004)
@@ -226,13 +226,13 @@ export class KiwoomStockAPI {
         marketCap: this.parseNumber(result.mac),
         tradingValue,
         sharesOutstanding: this.parseNumber(result.flo_stk),
-        volumeRatio: this.parseSignedNumber(result.trde_pre),
-        high: this.parseSignedNumber(result.high_pric),
-        low: this.parseSignedNumber(result.low_pric),
-        open: this.parseSignedNumber(result.open_pric),
+        volumeRatio: this.parseAbsolutePrice(result.trde_pre),
+        high: this.parseAbsolutePrice(result.high_pric),
+        low: this.parseAbsolutePrice(result.low_pric),
+        open: this.parseAbsolutePrice(result.open_pric),
         previousClose: this.parseNumber(result.base_pric),
-        high52w: this.parseSignedNumber(result.oyr_hgst),
-        low52w: this.parseSignedNumber(result.oyr_lwst)
+        high52w: this.parseAbsolutePrice(result.oyr_hgst),
+        low52w: this.parseAbsolutePrice(result.oyr_lwst)
       }
     })
   }
@@ -269,8 +269,8 @@ export class KiwoomStockAPI {
         throw new Error(`업종 현재가 조회 실패: ${result.return_msg || '알 수 없는 에러'}`)
       }
 
-      // 지수값/변동폭/등락률 파싱 (부호 포함 문자열)
-      const value = this.parseSignedNumber(result.cur_prc) ?? 0
+      // 지수값은 절대값, 변동폭/등락률은 부호 보존 (하락 시 음수)
+      const value = this.parseAbsolutePrice(result.cur_prc) ?? 0
       const change = this.parseSignedNumber(result.pred_pre) ?? 0
       const changePercent = this.parseSignedNumber(result.flu_rt) ?? 0
 
@@ -542,13 +542,13 @@ export class KiwoomStockAPI {
     }
 
     // 가격 파싱: 분봉은 부호 포함("-78800"), 일봉/주봉/월봉은 절대값
-    // parseSignedNumber로 통일 (절대값 반환)
+    // 어느 경우든 차트 OHLC는 실제 가격이므로 절대값으로 변환
     return {
       date,
-      open: this.parseSignedNumber(item.open_pric) ?? 0,
-      high: this.parseSignedNumber(item.high_pric) ?? 0,
-      low: this.parseSignedNumber(item.low_pric) ?? 0,
-      close: this.parseSignedNumber(item.cur_prc) ?? 0,
+      open: this.parseAbsolutePrice(item.open_pric) ?? 0,
+      high: this.parseAbsolutePrice(item.high_pric) ?? 0,
+      low: this.parseAbsolutePrice(item.low_pric) ?? 0,
+      close: this.parseAbsolutePrice(item.cur_prc) ?? 0,
       volume: this.parseNumber(item.trde_qty) ?? 0
     }
   }
@@ -668,8 +668,9 @@ export class KiwoomStockAPI {
   }
 
   /**
-   * 부호 포함 문자열을 절대값 숫자로 파싱 (REQ-004)
-   * "+190000" → 190000, "-52500" → 52500, "-0" → 0
+   * 부호 포함 문자열을 부호 그대로 파싱 (REQ-004)
+   * "+190" → 190, "-52500" → -52500, "-0" → 0
+   * 변동폭(pred_pre), 등락률(flu_rt) 등 방향성이 있는 값에 사용
    */
   private parseSignedNumber(value: string | undefined): number | null {
     if (value === undefined || value === null || value === '') {
@@ -677,7 +678,17 @@ export class KiwoomStockAPI {
     }
     const cleaned = value.replace(/,/g, '')
     const num = parseFloat(cleaned)
-    return isNaN(num) ? null : Math.abs(num)
+    return isNaN(num) ? null : num
+  }
+
+  /**
+   * 부호 포함 문자열을 절대값으로 파싱 (REQ-004)
+   * "+190000" → 190000, "-52500" → 52500
+   * 실제 가격(현재가, 시가, 고가, 저가 등) 파싱에 사용
+   */
+  private parseAbsolutePrice(value: string | undefined): number | null {
+    const num = this.parseSignedNumber(value)
+    return num === null ? null : Math.abs(num)
   }
 
   /**
