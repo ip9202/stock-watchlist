@@ -26,6 +26,7 @@ stock_watchlist/
 │   │   │   ├── input.tsx       # 입력 컴포넌트
 │   │   │   └── loading.tsx     # 로딩 컴포넌트
 │   │   ├── dashboard/          # 대시보드 컴포넌트
+│   │   │   ├── MarketIndicators.tsx # 시장 지표 (코스피/코스닥/환율)
 │   │   │   ├── StockSearch.tsx # 종목 검색
 │   │   │   ├── StockCard.tsx   # 주식 카드
 │   │   │   └── WatchlistManager.tsx # 관심종목 관리
