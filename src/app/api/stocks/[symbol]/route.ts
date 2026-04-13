@@ -4,7 +4,7 @@ import { ApiResponse } from '@/types/api'
 import { cache } from '@/lib/cache'
 import { KiwoomStockAPI, type StockDetail } from '@/lib/kiwoom-stock-api'
 
-const CACHE_TTL_STOCK_DETAIL = 30 // 30초
+const CACHE_TTL_STOCK_DETAIL = 15 // 15초 (SPEC-POLL-004: 폴링 인터벌과 일치)
 
 /**
  * 개별 종목 시세 조회 API (REQ-003: WebSocket → Kiwoom REST API 전환)

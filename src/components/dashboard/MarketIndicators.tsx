@@ -8,6 +8,7 @@ import useSWR from 'swr'
 import dynamic from 'next/dynamic'
 import { Card, CardContent } from '@/components/ui/card'
 import { apiUrl } from '@/lib/api'
+import { getMarketState, getPollingInterval } from '@/lib/market-hours'
 import type { ChartCandle } from '@/types/stock'
 
 // ChartContainer를 SSR 비활성화로 동적 로드 (상세 페이지와 동일 패턴)
@@ -125,31 +126,39 @@ const TABS: { key: TabType; label: string }[] = [
 export function MarketIndicators() {
   const [activeTab, setActiveTab] = useState<TabType>('kospi')
 
-  // 시장 지수 데이터 fetch
+  // 장 상태 기반 동적 폴링 인터벌 (SPEC-POLL-001)
+  const marketState = getMarketState()
+  const indexInterval = getPollingInterval('index', marketState)
+  const exchangeInterval = getPollingInterval('exchange', marketState)
+  const chartInterval = getPollingInterval('minute-chart', marketState)
+
+  // 시장 지수 데이터 fetch (동적 인터벌)
   const { data: marketRes, isLoading: marketLoading } =
     useSWR<MarketResponse>(apiUrl('/api/market'), fetcher, {
+      refreshInterval: indexInterval,
       revalidateOnFocus: false,
       errorRetryCount: 2,
     })
 
-  // 환율 데이터 fetch
+  // 환율 데이터 fetch (동적 인터벌)
   const { data: exchangeRes, isLoading: exchangeLoading } =
     useSWR<ExchangeResponse>(apiUrl('/api/market/exchange'), fetcher, {
+      refreshInterval: exchangeInterval,
       revalidateOnFocus: false,
       errorRetryCount: 2,
     })
 
-  // KOSPI/KOSDAQ 분봉 차트 데이터 fetch
+  // KOSPI/KOSDAQ 분봉 차트 데이터 fetch (동적 인터벌)
   const { from, to } = getDateRange(5)
   const { data: kospiChartRes } = useSWR<ChartResponse>(
     apiUrl(`/api/market/chart?index=kospi&period=minute&from=${from}&to=${to}&tic_scope=1`),
     fetcher,
-    { revalidateOnFocus: false, errorRetryCount: 2 }
+    { refreshInterval: chartInterval, revalidateOnFocus: false, errorRetryCount: 2 }
   )
   const { data: kosdaqChartRes } = useSWR<ChartResponse>(
     apiUrl(`/api/market/chart?index=kosdaq&period=minute&from=${from}&to=${to}&tic_scope=1`),
     fetcher,
-    { revalidateOnFocus: false, errorRetryCount: 2 }
+    { refreshInterval: chartInterval, revalidateOnFocus: false, errorRetryCount: 2 }
   )
 
   // 현재 탭에 따른 데이터 선택

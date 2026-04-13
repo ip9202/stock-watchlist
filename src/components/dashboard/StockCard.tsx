@@ -1,11 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { TrendingUp, TrendingDown, Loader2 } from "lucide-react"
 import { formatMarketCapKorean } from "@/lib/utils"
 import Link from "next/link"
-import { apiFetch } from "@/lib/api"
+import usePollingData from "@/hooks/usePollingData"
 
 interface StockData {
   symbol: string
@@ -26,49 +25,14 @@ interface StockCardProps {
 }
 
 export function StockCard({ symbol, defaultName = "로딩 중..." }: StockCardProps) {
-  const [data, setData] = useState<StockData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(false)
+  // usePollingData로 동적 폴링 (장중 15초, 장외 5분, 주말 중지)
+  const { data: rawData, error: fetchError, isLoading: loading } =
+    usePollingData<{ success: boolean; data: StockData }>('stock-price', `/api/stocks/${symbol}`)
 
-  useEffect(() => {
-    const fetchStockData = async () => {
-      try {
-        setLoading(true)
-        setError(false)
-        
-        // 주식 정보 요청만 (공시 정보는 하단 섹션에서만 표시)
-        const stockResponse = await apiFetch(`/api/stocks/${symbol}`)
-        const stockResult = await stockResponse.json()
-        
-        if (stockResult.success && stockResult.data) {
-          const fetchedData = stockResult.data;
-          // defaultName이 유효한 값(초기값이 아닌 경우)이면 API 결과의 name을 덮어씁니다.
-          if (defaultName && defaultName !== "로딩 중...") {
-            fetchedData.name = defaultName;
-          }
-          setData(fetchedData);
-        } else {
-          setError(true)
-        }
-        
-      } catch (err) {
-        console.error('Stock data fetch error:', err)
-        setError(true)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    // 초기 로드
-    fetchStockData()
-
-    // 5분마다 자동 새로고침
-    const interval = setInterval(() => {
-      fetchStockData()
-    }, 5 * 60 * 1000) // 5분 = 300초
-
-    return () => clearInterval(interval)
-  }, [symbol])
+  // API 응답에서 종목 데이터 추출
+  const data = rawData?.success ? rawData.data : null
+  // defaultName이 유효한 값이면 API 결과의 name을 덮어씀
+  const error = fetchError || (!loading && !data)
 
   // 색상 결정
   const getPriceColor = (change: number) => {
@@ -152,7 +116,7 @@ export function StockCard({ symbol, defaultName = "로딩 중..." }: StockCardPr
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-                <CardTitle className="text-lg truncate pr-2 text-gray-900 group-hover:text-blue-700 transition-colors">{data.name}</CardTitle>
+                <CardTitle className="text-lg truncate pr-2 text-gray-900 group-hover:text-blue-700 transition-colors">{(defaultName && defaultName !== "로딩 중...") ? defaultName : (data.name || symbol)}</CardTitle>
               </div>
               <span className="text-sm text-gray-500 font-mono">{symbol}</span>
             </div>

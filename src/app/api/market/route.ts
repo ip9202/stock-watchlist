@@ -4,8 +4,8 @@ import type { ApiResponse } from '@/types/api'
 import { cache } from '@/lib/cache'
 import { KiwoomStockAPI } from '@/lib/kiwoom-stock-api'
 
-// 지수 캐시 TTL: 1분 (60초) - 실시간에 가까운 갱신
-const CACHE_TTL_INDEX = 60
+// 지수 캐시 TTL: 30초 (SPEC-POLL-004: 폴링 인터벌과 일치)
+const CACHE_TTL_INDEX = 30
 
 // 업종코드: KOSPI=001, KOSDAQ=101 (3자리)
 const KOSPI_CODE = '001'

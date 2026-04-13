@@ -433,12 +433,12 @@ describe('GET /api/stocks/[symbol] (종목 시세 조회 API)', () => {
       const request = new NextRequest('http://localhost/api/stocks/005930')
       await GET(request, { params: Promise.resolve({ symbol: '005930' }) })
 
-      // Assert: fetchStockDetail 호출 및 30초 TTL로 캐시 저장
+      // Assert: fetchStockDetail 호출 및 15초 TTL로 캐시 저장 (SPEC-POLL-004)
       expect(mockAPIInstance.fetchStockDetail).toHaveBeenCalledWith('005930')
       expect(cache.set).toHaveBeenCalledWith(
         'stock_005930',
         expect.objectContaining({ symbol: '005930', name: '삼성전자' }),
-        30 // 30초 TTL
+        15 // 15초 TTL (SPEC-POLL-004: 서버 캐시 <= 클라이언트 폴링)
       )
     })
   })
