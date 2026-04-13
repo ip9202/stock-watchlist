@@ -87,11 +87,17 @@
 - `npm run build:prod` - 배포용 빌드 (`prisma generate && next build`)
 
 ### 배포 설정
+- **배포 방식**: Git 기반 배포 (SCP 방식에서 2026-04-13 전환)
 - **배포 대상**: ip9202.site/stocks (port 3005)
-- **프로세스 관리**: PM2 (`pm2 start stock-watchlist`)
+- **배포 스크립트**:
+  - `./deploy/deploy.sh` — 일반 배포 (git push → 서버 pull → 빌드 → PM2 restart)
+  - `./deploy/deploy.sh --db` — DB 마이그레이션 포함
+  - `./deploy/setup-server.sh` — 최초 서버 셋업
+- **서버 인증**: SSH 키 (GitHub deploy key: id_stock_watchlist)
+- **프로세스 관리**: PM2 (ecosystem.config.json, 로그인 셸 사용)
 - **웹 서버**: Nginx (3-stage location 설정)
 - **데이터베이스**: PostgreSQL 15 (stock_watchlist_prod)
-- **배포 스크립트**: `./deploy/deploy.sh` (자동화)
+- **롤백**: `git checkout HEAD~1` → 빌드 → PM2 restart
 
 ### 환경 변수
 
@@ -109,7 +115,6 @@
 - `NODE_ENV=production`
 - `PORT=3005`
 - `HOSTNAME=0.0.0.0`
-- `PYTHON_PATH=/usr/bin/python3` (서버 환경)
 
 ## 아키텍처 패턴
 

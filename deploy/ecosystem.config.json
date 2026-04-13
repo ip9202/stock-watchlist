@@ -1,0 +1,14 @@
+{
+  "apps": [
+    {
+      "name": "stock-watchlist",
+      "script": "start.sh",
+      "cwd": "/Users/irons_server/projects/stock-watchlist",
+      "interpreter": "/bin/bash",
+      "interpreter_args": "-l",
+      "env": {
+        "PORT": 3005
+      }
+    }
+  ]
+}

@@ -28,22 +28,22 @@ export function Footer() {
             <h4 className="font-semibold text-gray-900 mb-4">서비스</h4>
             <ul className="space-y-2 text-sm text-gray-600">
               <li>
-                <a href="/" className="hover:text-blue-600 transition-colors">
+                <a href="/stocks" className="hover:text-blue-600 transition-colors">
                   관심종목 관리
                 </a>
               </li>
               <li>
-                <a href="/" className="hover:text-blue-600 transition-colors">
+                <a href="/stocks" className="hover:text-blue-600 transition-colors">
                   실시간 주가 조회
                 </a>
               </li>
               <li>
-                <a href="/" className="hover:text-blue-600 transition-colors">
+                <a href="/stocks" className="hover:text-blue-600 transition-colors">
                   공시정보 모니터링
                 </a>
               </li>
               <li>
-                <a href="/" className="hover:text-blue-600 transition-colors">
+                <a href="/stocks" className="hover:text-blue-600 transition-colors">
                   종목 뉴스 분석
                 </a>
               </li>
