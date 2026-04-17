@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { fetchSignals, fetchSignalByCode } from '../client'
+import { fetchSignals, fetchSignalByCode, fetchDiscoveries, fetchDiscoveryByCode } from '../client'
 
 describe('StockAutoClient', () => {
   beforeEach(() => {
@@ -143,6 +143,141 @@ describe('StockAutoClient', () => {
 
       // Act
       const result = await fetchSignalByCode('005930')
+
+      // Assert
+      expect(result).toBeNull()
+    })
+  })
+
+  describe('fetchDiscoveries', () => {
+    it('성공적으로 발견 목록을 반환해야 한다', async () => {
+      // Arrange
+      const mockDiscoveries = {
+        discoveries: [
+          {
+            stock_code: '005930',
+            stock_name: '삼성전자',
+            discovery_score: 85,
+            grade: 'S',
+            sentiment: 0.8,
+            reason: '강력한 상승 모멘텀',
+            created_at: '2026-04-17T10:00:00Z',
+          },
+        ],
+        count: 1,
+      }
+
+      vi.mocked(global.fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockDiscoveries,
+      } as Response)
+
+      // Act
+      const result = await fetchDiscoveries()
+
+      // Assert
+      expect(result).toEqual(mockDiscoveries)
+      expect(global.fetch).toHaveBeenCalledWith(
+        'http://14.49.182.30:8080/api/mashup/discoveries',
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
+      )
+    })
+
+    it('에러 발생 시 null을 반환해야 한다', async () => {
+      // Arrange
+      vi.mocked(global.fetch).mockRejectedValueOnce(new Error('Network error'))
+
+      // Act
+      const result = await fetchDiscoveries()
+
+      // Assert
+      expect(result).toBeNull()
+    })
+
+    it('타임아웃 발생 시 null을 반환해야 한다', async () => {
+      // Arrange: AbortController를 사용하여 타임아웃 시뮬레이션
+      vi.useFakeTimers()
+
+      vi.mocked(global.fetch).mockImplementationOnce(() => {
+        // 즉시 AbortError 발생
+        return Promise.reject(new DOMException('Aborted', 'AbortError'))
+      })
+
+      // Act
+      const result = await fetchDiscoveries()
+
+      // Assert
+      expect(result).toBeNull()
+
+      vi.useRealTimers()
+    })
+
+    it('HTTP 에러 시 null을 반환해야 한다', async () => {
+      // Arrange
+      vi.mocked(global.fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+      } as Response)
+
+      // Act
+      const result = await fetchDiscoveries()
+
+      // Assert
+      expect(result).toBeNull()
+    })
+  })
+
+  describe('fetchDiscoveryByCode', () => {
+    it('성공적으로 종목 발견을 반환해야 한다', async () => {
+      // Arrange
+      const mockDiscovery = {
+        stock_code: '005930',
+        stock_name: '삼성전자',
+        discovery_score: 85,
+        grade: 'S',
+        sentiment: 0.8,
+        reason: '강력한 상승 모멘텀',
+        created_at: '2026-04-17T10:00:00Z',
+      }
+
+      vi.mocked(global.fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockDiscovery,
+      } as Response)
+
+      // Act
+      const result = await fetchDiscoveryByCode('005930')
+
+      // Assert
+      expect(result).toEqual(mockDiscovery)
+      expect(global.fetch).toHaveBeenCalledWith(
+        'http://14.49.182.30:8080/api/mashup/discoveries/005930',
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
+      )
+    })
+
+    it('404 시 null을 반환해야 한다', async () => {
+      // Arrange
+      vi.mocked(global.fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        statusText: 'Not Found',
+      } as Response)
+
+      // Act
+      const result = await fetchDiscoveryByCode('005930')
+
+      // Assert
+      expect(result).toBeNull()
+    })
+
+    it('에러 발생 시 null을 반환해야 한다', async () => {
+      // Arrange
+      vi.mocked(global.fetch).mockRejectedValueOnce(new Error('Network error'))
+
+      // Act
+      const result = await fetchDiscoveryByCode('005930')
 
       // Assert
       expect(result).toBeNull()
