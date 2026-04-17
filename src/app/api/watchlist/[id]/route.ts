@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { ApiResponse } from '@/types/api'
+import { syncWatchlistRemove } from '@/lib/stock-auto/sync-client'
 
 // 관심종목 삭제
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -55,6 +56,12 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       where: {
         id: id
       }
+    })
+
+    // stock_auto로 동기화 (fire-and-forget)
+    // watchlistItem.symbol을 사용하여 종목코드 전달
+    syncWatchlistRemove(watchlistItem.symbol).catch((error) => {
+      console.error(`Watchlist remove sync failed for ${watchlistItem.symbol}:`, error)
     })
 
     return NextResponse.json<ApiResponse>({

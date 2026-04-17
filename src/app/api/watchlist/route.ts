@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { WatchlistItem } from '@/types/stock'
 import { ApiResponse } from '@/types/api'
 import { Prisma } from '@prisma/client'
+import { syncWatchlistAdd } from '@/lib/stock-auto/sync-client'
 
 // 관심종목 조회
 export async function GET(request: NextRequest) {
@@ -109,6 +110,16 @@ export async function POST(request: NextRequest) {
         name: name,
         order: newOrder
       }
+    })
+
+    // 시장구분 결정: 종목코드 5번째 자리가 0~3이면 KOSPI, 4~9면 KOSDAQ
+    // (한국 주식시장 코딩 규칙: 005930 삼성전자는 KOSPI, 066570 LG전자는 KOSDAQ)
+    const fifthDigit = symbol.length >= 5 ? parseInt(symbol[4]) : 0
+    const market = fifthDigit <= 3 ? 'KOSPI' : 'KOSDAQ'
+
+    // stock_auto로 동기화 (fire-and-forget)
+    syncWatchlistAdd(symbol, name, market).catch((error) => {
+      console.error(`Watchlist add sync failed for ${symbol}:`, error)
     })
 
     return NextResponse.json<ApiResponse<WatchlistItem>>({
