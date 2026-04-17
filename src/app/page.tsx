@@ -5,6 +5,7 @@ import { TrendingUp } from "lucide-react"
 import { StockSearch } from "@/components/dashboard/StockSearch"
 import { WatchlistManager } from "@/components/dashboard/WatchlistManager"
 import { MarketIndicators } from "@/components/dashboard/MarketIndicators"
+import { SignalPanel } from "@/components/signals/SignalPanel"
 import { Footer } from "@/components/layout/Footer"
 import { apiFetch } from "@/lib/api"
 
@@ -74,6 +75,11 @@ export default function DashboardPage() {
 
         {/* Watchlist Manager */}
         <WatchlistManager />
+
+        {/* AI 시그널 패널 */}
+        <div className="mt-8">
+          <SignalPanel />
+        </div>
 
       </main>
 
