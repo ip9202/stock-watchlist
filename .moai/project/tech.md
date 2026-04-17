@@ -110,6 +110,7 @@
 - `NAVER_CLIENT_ID` - 네이버 뉴스 API 클라이언트 ID
 - `NAVER_CLIENT_SECRET` - 네이버 뉴스 API 시크릿
 - `DART_API_KEY` - DART 공시 API 키
+- `STOCK_AUTO_API_URL` - stock_auto 서버 URL (기본: http://14.49.182.30:8080)
 
 **배포 환경**:
 - `NODE_ENV=production`

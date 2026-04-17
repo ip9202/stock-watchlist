@@ -23,6 +23,7 @@ Stock Watchlist는 한국 주식 시장의 실시간 정보를 추적하고 관�
 - 사용자별 개인화된 워치리스트
 - 드래그 앤 드롭 순서 변경 (계획)
 - 여러 사용자 지원 (다중 User 모델)
+- stock_auto 자동 동기화 (추가/삭제 시 fire-and-forget)
 
 ### 3. 실시간 주식 정보
 - 기본 OHLCV 데이터 (시가/고가/저가/종가/거래량)
@@ -89,7 +90,7 @@ Stock Watchlist는 한국 주식 시장의 실시간 정보를 추적하고 관�
 - 데이터 업데이트는 장 중 실시간 (30초 캐시)
 - API 호출 제한으로 인해 과도한 요청 시 지연 가능
 
-## 완성된 기능 (2026-03-23)
+## 완성된 기능 (2026-04-17)
 
 - SPEC-API-001: 키움증권 REST API 완전 전환 (PyKRX 제거)
 - SPEC-CHART-001: 일봉/주봉 차트 (lightweight-charts v5)
@@ -97,6 +98,10 @@ Stock Watchlist는 한국 주식 시장의 실시간 정보를 추적하고 관�
 - SPEC-CHART-003: 분봉 인트라데이 차트 지원
 - SPEC-API-002: 토큰 만료 처리 강화 (자동 재시도)
 - SPEC-MARKET-001: 시장 지표 대시보드 (코스피/코스닥/환율, 미니차트)
+- SPEC-POLL-001: 주기적 데이터 폴링 시스템 (SWR + 장시간 동적 인터벌)
+- SPEC-MASHUP-003: AI 시그널 프록시 API + UI 패널
+- SPEC-MASHUP-004: AI 종목 발굴 프록시 API + UI 패널
+- SPEC-MASHUP-005: 관심종목 동기화 (stock_auto ↔ stock_watchlist)
 - 뉴스/공시 API: Python→Node.js native fetch 전환
 - 차트 개선: 1일 차트 시간축 (08:00~16:30), HH:MM 포맷, 이전장 종가/시가 참고선
 

@@ -10,7 +10,7 @@ stock_watchlist/
 │   │   │   ├── stocks/         # 주식 정보 API
 │   │   │   │   └── [symbol]/   # 개별 종목
 │   │   │   │       └── chart/  # 차트 데이터 API
-│   │   │   ├── watchlist/      # 관심종목 API
+│   │   │   ├── watchlist/      # 관심종목 API (stock_auto 동기화 포함)
 │   │   │   ├── news/           # 뉴스 API (Node.js fetch)
 │   │   │   ├── disclosure/     # 공시 정보 API (Node.js fetch)
 │   │   │   └── health/         # 헬스체크 API
@@ -45,6 +45,9 @@ stock_watchlist/
 │   │   ├── env.ts              # 환경 변수 검증
 │   │   ├── kiwoom-token-manager.ts  # 키움 OAuth2 토큰 관리 (싱글톤)
 │   │   ├── kiwoom-stock-api.ts # 키움 REST API 클라이언트
+│   │   ├── stock-auto/         # stock_auto API 클라이언트
+│   │   │   ├── client.ts       # 시그널/발견 API 클라이언트
+│   │   │   └── sync-client.ts  # 관심종목 동기화 클라이언트
 │   │   ├── utils.ts            # 일반 유틸리티
 │   │   └── constants.ts        # 상수 정의
 │   └── types/                  # TypeScript 타입
@@ -58,7 +61,8 @@ stock_watchlist/
 ├── scripts/                    # 유틸리티 스크립트 (앱에 미포함)
 │   ├── fetch_stocks_kiwoom_rest.py    # 키움 REST API 테스트
 │   ├── test-kiwoom-api.ts             # API 호환성 테스트
-│   └── debug-api-endpoints.ts         # 엔드포인트 디버그
+│   ├── debug-api-endpoints.ts         # 엔드포인트 디버그
+│   └── sync-watchlist.ts              # 관심종목 부트스트랩 동기화 스크립트
 ├── public/                     # 정적 파일
 ├── .moai/                      # MoAI 설정 및 문서
 └── .env.local                  # 환경 변수 (로컬)
@@ -114,6 +118,7 @@ Disclosure  // 공시 정보
 
 ### 외부 데이터 소스
 - **키움증권 REST API**: OAuth2 기반 주식 정보, 차트 데이터
+- **stock_auto FastAPI**: AI 시그널/발견, 관심종목 동기화 (14.49.182.30:8080)
 - **네이버 뉴스 API**: 종목별 뉴스 검색
 - **DART API**: 전자공시 정보 조회
 
