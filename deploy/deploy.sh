@@ -83,7 +83,7 @@ log_success "Server updated"
 
 # Step 3: Install dependencies (package.json 변경시)
 log_info "Step 3: Checking dependencies..."
-run_on_server "cd $PROJECT_PATH && git diff --name-only HEAD~1 HEAD 2>/dev/null | grep -qE '(package\\.json|package-lock\\.json)' && npm ci || echo '  No dependency changes, skipping npm ci'"
+run_on_server "cd $PROJECT_PATH && bash -c 'git diff --name-only HEAD~1 HEAD 2>/dev/null | grep -qE \"(package.json|package-lock.json)\" && npm ci || echo \"  No dependency changes, skipping npm ci\"'"
 log_success "Dependencies checked"
 
 # Step 4: DB migration (--db only)
