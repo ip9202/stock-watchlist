@@ -55,7 +55,8 @@ export class KiwoomTokenManager {
     // [8001] 키 검증 실패는 재시도해도 해결 불가 (REQ-N02)
     if (msg.includes('[8001]')) return false
     // [8005] 토큰 만료/무효 에러 감지 (REQ-E03)
-    if (msg.includes('[8005]')) return true
+    // 키움 API 실제 포맷: "[8005:Token이 유효하지 않습니다]" (콜론 포함)
+    if (msg.includes('[8005')) return true
     return false
   }
 
