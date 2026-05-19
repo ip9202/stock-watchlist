@@ -23,6 +23,16 @@ vi.mock('@/lib/stock-auto/sync-client', () => ({
   syncWatchlistRemove: vi.fn()
 }))
 
+// auth mock - 세션 기반 인증 (SPEC-AUTH-001)
+vi.mock('@/lib/auth', () => ({
+  auth: vi.fn().mockResolvedValue({
+    user: { id: 'user-1', email: 'demo@example.com' }
+  }),
+  handlers: {},
+  signIn: vi.fn(),
+  signOut: vi.fn()
+}))
+
 import { db } from '@/lib/db'
 import { syncWatchlistRemove } from '@/lib/stock-auto/sync-client'
 
@@ -141,15 +151,15 @@ describe('DELETE /api/watchlist/[id]', () => {
   })
 
   it('사용자 권한 없음 시 동기화는 호출되지 않는다', async () => {
-    // given
-    mockDb.user.findUnique.mockResolvedValue({
-      id: 'user-2',
-      email: 'demo@example.com'
-    })
+    // given - auth가 user-2로 로그인된 상태, watchlist는 user-1 소유
+    const { auth } = await import('@/lib/auth')
+    vi.mocked(auth).mockResolvedValueOnce({
+      user: { id: 'user-2', email: 'other@example.com' }
+    } as any)
 
     const existingItem = {
       id: 'watch-1',
-      userId: 'user-1', // 다른 사용자
+      userId: 'user-1', // 다른 사용자 소유
       symbol: '005930',
       name: '삼성전자',
       order: 1

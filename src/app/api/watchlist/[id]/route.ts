@@ -1,10 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { auth } from '@/lib/auth'
 import { ApiResponse } from '@/types/api'
 import { syncWatchlistRemove } from '@/lib/stock-auto/sync-client'
 
+// @MX:NOTE: [AUTO] 세션 기반 userId 추출 - 미인증 시 null 반환
+async function getAuthenticatedUserId(): Promise<string | null> {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return null
+  }
+  return session.user.id
+}
+
 // 관심종목 삭제
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
 
@@ -15,20 +25,14 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       }, { status: 400 })
     }
 
-    // TODO: 실제 사용자 인증 구현 후 userId 가져오기  
-    // 임시로 demo 사용자 사용
-    const demoUser = await db.user.findUnique({
-      where: { email: 'demo@example.com' }
-    })
-    
-    if (!demoUser) {
+    const userId = await getAuthenticatedUserId()
+
+    if (!userId) {
       return NextResponse.json<ApiResponse>({
         success: false,
-        error: 'Demo user not found'
-      }, { status: 500 })
+        error: 'Unauthorized'
+      }, { status: 401 })
     }
-    
-    const userId = demoUser.id
 
     // 존재 확인 및 사용자 검증
     const watchlistItem = await db.watchlist.findUnique({
@@ -47,7 +51,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     if (watchlistItem.userId !== userId) {
       return NextResponse.json<ApiResponse>({
         success: false,
-        error: 'Unauthorized'
+        error: 'Forbidden'
       }, { status: 403 })
     }
 
@@ -59,7 +63,6 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     })
 
     // stock_auto로 동기화 (fire-and-forget)
-    // watchlistItem.symbol을 사용하여 종목코드 전달
     syncWatchlistRemove(watchlistItem.symbol).catch((error) => {
       console.error(`Watchlist remove sync failed for ${watchlistItem.symbol}:`, error)
     })
@@ -78,11 +81,11 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   }
 }
 
-// 심볼로 관심종목 삭제 (편의 기능)  
-export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+// 심볼로 관심종목 삭제 (편의 기능)
+export async function POST(request: NextRequest, { params: _params }: { params: Promise<{ id: string }> }) {
   try {
     const { symbol } = await request.json()
-    
+
     if (!symbol) {
       return NextResponse.json<ApiResponse>({
         success: false,
@@ -90,20 +93,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       }, { status: 400 })
     }
 
-    // TODO: 실제 사용자 인증 구현 후 userId 가져오기  
-    // 임시로 demo 사용자 사용
-    const demoUser = await db.user.findUnique({
-      where: { email: 'demo@example.com' }
-    })
-    
-    if (!demoUser) {
+    const userId = await getAuthenticatedUserId()
+
+    if (!userId) {
       return NextResponse.json<ApiResponse>({
         success: false,
-        error: 'Demo user not found'
-      }, { status: 500 })
+        error: 'Unauthorized'
+      }, { status: 401 })
     }
-    
-    const userId = demoUser.id
 
     const deleted = await db.watchlist.deleteMany({
       where: {
