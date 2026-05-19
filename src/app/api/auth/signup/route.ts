@@ -15,7 +15,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import bcryptjs from 'bcryptjs'
 import { db } from '@/lib/db'
 import { checkRateLimit, SIGNUP_MAX_ATTEMPTS, SIGNUP_WINDOW } from '@/lib/rate-limit'
-import { validatePasswordLength, validatePasswordComplexity, MIN_PASSWORD_LENGTH, REQUIRED_CHAR_TYPES } from '@/lib/password-validator'
+import { validatePasswordLength, validatePasswordComplexity, MIN_PASSWORD_LENGTH } from '@/lib/password-validator'
 
 // RFC 5322 이메일 정규식 (간략화)
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -105,6 +105,7 @@ export async function POST(request: NextRequest) {
       console.warn(`[SPEC-AUTH-002] 중복 이메일 시도 감지: ${email} from ${ip}`)
 
       // 존재하는 사용자 정보 반환 (비밀번호 제외)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { hashedPassword: _hp, ...safeUser } = existingUser
       return NextResponse.json(
         { success: true, data: safeUser },
@@ -124,6 +125,7 @@ export async function POST(request: NextRequest) {
     })
 
     // 응답에서 hashedPassword 제외 (REQ-SEC-001: 비밀번호 노출 방지)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { hashedPassword: _hp, ...safeUser } = user
 
     return NextResponse.json(
