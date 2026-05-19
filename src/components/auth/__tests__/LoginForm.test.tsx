@@ -1,0 +1,113 @@
+/**
+ * LoginForm 컴포넌트 테스트 (SPEC-AUTH-001)
+ *
+ * TDD RED → GREEN → REFACTOR 사이클
+ */
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { LoginForm } from '../LoginForm'
+
+// next-auth/react 모킹
+const mockSignIn = vi.fn()
+const mockPush = vi.fn()
+
+vi.mock('next-auth/react', () => ({
+  signIn: (...args: unknown[]) => mockSignIn(...args),
+}))
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: mockPush,
+  }),
+}))
+
+describe('LoginForm', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  describe('렌더링', () => {
+    it('이메일 입력 필드를 렌더링한다', () => {
+      render(<LoginForm />)
+      expect(screen.getByLabelText(/이메일/i)).toBeInTheDocument()
+    })
+
+    it('비밀번호 입력 필드를 렌더링한다', () => {
+      render(<LoginForm />)
+      expect(screen.getByLabelText(/비밀번호/i)).toBeInTheDocument()
+    })
+
+    it('로그인 버튼을 렌더링한다', () => {
+      render(<LoginForm />)
+      expect(screen.getByRole('button', { name: /로그인/i })).toBeInTheDocument()
+    })
+
+    it('회원가입 링크를 렌더링한다', () => {
+      render(<LoginForm />)
+      expect(screen.getByRole('link', { name: /회원가입/i })).toBeInTheDocument()
+    })
+  })
+
+  describe('로그인 성공', () => {
+    it('성공 시 홈으로 리다이렉트한다', async () => {
+      mockSignIn.mockResolvedValueOnce({ ok: true, error: null })
+      const user = userEvent.setup()
+
+      render(<LoginForm />)
+
+      await user.type(screen.getByLabelText(/이메일/i), 'test@example.com')
+      await user.type(screen.getByLabelText(/비밀번호/i), 'password123')
+      await user.click(screen.getByRole('button', { name: /로그인/i }))
+
+      await waitFor(() => {
+        expect(mockSignIn).toHaveBeenCalledWith('credentials', {
+          email: 'test@example.com',
+          password: 'password123',
+          redirect: false,
+        })
+      })
+
+      await waitFor(() => {
+        expect(mockPush).toHaveBeenCalledWith('/')
+      })
+    })
+  })
+
+  describe('로그인 실패', () => {
+    it('실패 시 에러 메시지를 표시한다', async () => {
+      mockSignIn.mockResolvedValueOnce({ ok: false, error: 'CredentialsSignin' })
+      const user = userEvent.setup()
+
+      render(<LoginForm />)
+
+      await user.type(screen.getByLabelText(/이메일/i), 'wrong@example.com')
+      await user.type(screen.getByLabelText(/비밀번호/i), 'wrongpassword')
+      await user.click(screen.getByRole('button', { name: /로그인/i }))
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/이메일 또는 비밀번호가 올바르지 않습니다/i)
+        ).toBeInTheDocument()
+      })
+    })
+
+    it('로딩 중에는 버튼이 비활성화된다', async () => {
+      // 해결되지 않는 Promise로 로딩 상태 유지
+      mockSignIn.mockReturnValueOnce(new Promise(() => {}))
+      const user = userEvent.setup()
+
+      render(<LoginForm />)
+
+      await user.type(screen.getByLabelText(/이메일/i), 'test@example.com')
+      await user.type(screen.getByLabelText(/비밀번호/i), 'password123')
+
+      const button = screen.getByRole('button', { name: /로그인/i })
+      await user.click(button)
+
+      await waitFor(() => {
+        expect(button).toBeDisabled()
+      })
+    })
+  })
+})

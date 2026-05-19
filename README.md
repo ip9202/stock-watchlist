@@ -43,6 +43,14 @@
   - URL: https://ip9202.site/stocks (basePath: /stocks, port 3005)
   - apiFetch/apiUrl로 클라이언트 fetch에 basePath 자동 적용
   - 배포 스크립트: ./deploy/deploy.sh (--full, --db 옵션)
+- **이메일/비밀번호 인증 시스템** (SPEC-AUTH-001):
+  - NextAuth.js v5 Credentials Provider 기반 인증
+  - bcryptjs (cost 12) 비밀번호 해싱
+  - 세션 기반 사용자 인증 (Prisma Adapter)
+  - 로그인 페이지 (/stocks/login), 회원가입 페이지 (/stocks/signup)
+  - 라우트 보호 미들웨어 (미인증 사용자 자동 리다이렉트)
+  - 세션 쿠키 보안 (Secure, HttpOnly, SameSite=Lax)
+  - 데모 사용자 데이터 마이그레이션 스크립트
 
 ### 🔧 기술 스택
 - **Frontend**: Next.js 15.5.2 + React 19 + TypeScript
@@ -85,11 +93,22 @@ cp .env.example .env.local
 DATABASE_URL=postgresql://localhost:5432/stock_watchlist_dev
 KIWOOM_APP_KEY=your_kiwoom_app_key
 KIWOOM_SECRET_KEY=your_kiwoom_secret_key
+AUTH_SECRET=your_random_secret_key_for_nextauth    # NextAuth.js 세션 암호화 키
+AUTH_URL=http://localhost:3000/stocks              # 로컬 개발 환경
 
 # 선택 환경변수 (미설정 시 샘플 데이터 반환)
 NAVER_CLIENT_ID=your_naver_client_id
 NAVER_CLIENT_SECRET=your_naver_client_secret
 DART_API_KEY=your_dart_api_key
+```
+
+**AUTH_SECRET 생성 방법:**
+```bash
+# OpenSSL 사용
+openssl rand -hex 32
+
+# Node.js 사용
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
 #### 3. 의존성 설치 및 데이터베이스 초기화
@@ -212,11 +231,28 @@ KIWOOM_SECRET_KEY=your_secret
 NAVER_CLIENT_ID=your_id
 NAVER_CLIENT_SECRET=your_secret
 DART_API_KEY=your_api_key
+AUTH_SECRET=your_random_secret_key_for_nextauth
+AUTH_URL=https://ip9202.site/stocks
 ```
 
-#### 4. 배포 스크립트 사용
+#### 4. Prisma 마이그레이션
+신규 배포 또는 데이터베이스 스키마 변경 시 마이그레이션 적용:
 ```bash
-# 전체 배포 (node_modules 포함)
+# 방법 1: 배포 스크립트 사용 (--db 플래그)
+./deploy/deploy.sh --db
+
+# 방법 2: 수동 실행
+./node_modules/.bin/prisma migrate deploy
+
+# 방법 3: 마이그레이션 생성 및 적용
+./node_modules/.bin/prisma migrate dev --name auth_system
+```
+
+**주의**: `npx prisma` 대신 `./node_modules/.bin/prisma` 사용 필수 (프로덕션 환경 호환성)
+
+#### 5. 배포 스크립트 사용
+```bash
+# 전체 배포 (node_modules 포함, Prisma 마이그레이션 포함)
 ./deploy/deploy.sh --full
 
 # 데이터베이스만 마이그레이션
@@ -288,6 +324,25 @@ curl "https://ip9202.site/stocks/api/stocks/005930/chart?interval=minute&period=
 ```
 
 ## 🛠️ 개발 히스토리
+
+### v1.6.0 (2026-05-19)
+- ✅ **이메일/비밀번호 인증 시스템** (SPEC-AUTH-001)
+  - NextAuth.js v5 Credentials Provider 기반 인증
+  - bcryptjs (cost 12) 비밀번호 해싱
+  - 세션 기반 사용자 인증 (Prisma Adapter)
+  - 로그인 페이지 (/stocks/login)
+  - 회원가입 페이지 (/stocks/signup)
+  - 라우트 보호 미들웨어 (세션 검증)
+  - 세션 쿠키 보안 속성 (Secure, HttpOnly, SameSite=Lax)
+  - Watchlist API: 데모 사용자 → 세션 기반 사용자로 전환
+  - 데모 사용자 데이터 마이그레이션 스크립트 (admin@example.com)
+- ✅ 테스트: 16개 신규 테스트 추가 (총 220개, ~90% 커버리지)
+- ✅ 환경변수: AUTH_SECRET, AUTH_URL 필수 추가
+
+### v1.5.0 (2026-04-17)
+- ✅ **AI 시그널 프록시 API + UI 패널** (SPEC-MASHUP-003)
+- ✅ **AI 종목 발굴 프록시 API + UI 패널** (SPEC-MASHUP-004)
+- ✅ **관심종목 동기화 클라이언트** (SPEC-MASHUP-005)
 
 ### v1.3.0 (2026-03-23)
 - ✅ **시장 지표 대시보드 추가** (SPEC-MARKET-001)

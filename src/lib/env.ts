@@ -11,6 +11,7 @@ const REQUIRED_ENV_VARS = [
   'DATABASE_URL',
   'KIWOOM_APP_KEY',
   'KIWOOM_SECRET_KEY',
+  'AUTH_SECRET',
 ] as const
 
 // Optional but recommended environment variables

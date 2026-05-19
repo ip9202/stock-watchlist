@@ -1,27 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { auth } from '@/lib/auth'
 import { WatchlistItem } from '@/types/stock'
 import { ApiResponse } from '@/types/api'
 import { Prisma } from '@prisma/client'
 import { syncWatchlistAdd } from '@/lib/stock-auto/sync-client'
 
+// @MX:ANCHOR: [AUTO] 세션 기반 userId 추출 헬퍼 - GET/POST/PUT 모두 사용
+// @MX:REASON: watchlist 모든 메서드에서 세션 인증 공통 처리
+async function getAuthenticatedUserId(): Promise<string | null> {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return null
+  }
+  return session.user.id
+}
+
 // 관심종목 조회
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
-    // TODO: 실제 사용자 인증 구현 후 userId 가져오기  
-    // 임시로 demo 사용자 사용
-    const demoUser = await db.user.findUnique({
-      where: { email: 'demo@example.com' }
-    })
-    
-    if (!demoUser) {
+    const userId = await getAuthenticatedUserId()
+
+    if (!userId) {
       return NextResponse.json<ApiResponse>({
         success: false,
-        error: 'Demo user not found'
-      }, { status: 500 })
+        error: 'Unauthorized'
+      }, { status: 401 })
     }
-    
-    const userId = demoUser.id
 
     const watchlist = await db.watchlist.findMany({
       where: {
@@ -59,20 +64,14 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // TODO: 실제 사용자 인증 구현 후 userId 가져오기  
-    // 임시로 demo 사용자 사용
-    const demoUser = await db.user.findUnique({
-      where: { email: 'demo@example.com' }
-    })
-    
-    if (!demoUser) {
+    const userId = await getAuthenticatedUserId()
+
+    if (!userId) {
       return NextResponse.json<ApiResponse>({
         success: false,
-        error: 'Demo user not found'
-      }, { status: 500 })
+        error: 'Unauthorized'
+      }, { status: 401 })
     }
-    
-    const userId = demoUser.id
 
     // 중복 확인
     const existing = await db.watchlist.findUnique({
@@ -155,20 +154,14 @@ export async function PUT(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // TODO: 실제 사용자 인증 구현 후 userId 가져오기  
-    // 임시로 demo 사용자 사용
-    const demoUser = await db.user.findUnique({
-      where: { email: 'demo@example.com' }
-    })
-    
-    if (!demoUser) {
+    const userId = await getAuthenticatedUserId()
+
+    if (!userId) {
       return NextResponse.json<ApiResponse>({
         success: false,
-        error: 'Demo user not found'
-      }, { status: 500 })
+        error: 'Unauthorized'
+      }, { status: 401 })
     }
-    
-    const userId = demoUser.id
 
     // 트랜잭션으로 순서 업데이트
     await db.$transaction(

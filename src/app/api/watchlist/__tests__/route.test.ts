@@ -24,6 +24,16 @@ vi.mock('@/lib/stock-auto/sync-client', () => ({
   syncWatchlistAdd: vi.fn()
 }))
 
+// auth mock - 세션 기반 인증 (SPEC-AUTH-001)
+vi.mock('@/lib/auth', () => ({
+  auth: vi.fn().mockResolvedValue({
+    user: { id: 'user-1', email: 'demo@example.com' }
+  }),
+  handlers: {},
+  signIn: vi.fn(),
+  signOut: vi.fn()
+}))
+
 import { db } from '@/lib/db'
 import { syncWatchlistAdd } from '@/lib/stock-auto/sync-client'
 

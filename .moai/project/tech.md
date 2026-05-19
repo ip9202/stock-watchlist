@@ -14,6 +14,8 @@
 ### 백엔드
 - **Next.js API Routes** - 서버리스 API 엔드포인트
 - **TypeScript** - 타입 안전한 API 구현
+- **NextAuth.js** v5 - 이메일/비밀번호 인증 (Credentials Provider)
+- **bcryptjs** 3.0.3 - 비밀번호 해싱 (cost factor 12)
 - **키움증권 REST API** - OAuth2 기반 주식 정보/차트 API
 - **Node.js Fetch API** - TypeScript에서 직접 HTTP 호출 (Python 제거됨)
 - **사용자 정의 Token Manager** - 싱글톤 패턴, 토큰 자동 갱신, 중복 요청 제거
@@ -22,7 +24,9 @@
 - **PostgreSQL** 15+ - 관계형 데이터베이스
 - **Prisma** 6.15.0+ - TypeScript ORM
 
-### 상태 관리
+### 인증 및 상태 관리
+- **NextAuth.js v5** - 세션 기반 사용자 인증
+- **Prisma Adapter** - NextAuth 세션 데이터베이스 저장
 - **SWR** - API 응답 캐싱 및 동기화
 - React Hooks (useState, useEffect) - 로컬 상태 관리
 
