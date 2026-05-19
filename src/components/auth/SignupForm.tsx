@@ -1,43 +1,65 @@
 'use client'
 
 /**
- * 회원가입 폼 컴포넌트 (SPEC-AUTH-001)
+ * 회원가입 폼 컴포넌트 (SPEC-AUTH-001 + SPEC-AUTH-002)
  *
  * - 이메일/비밀번호/비밀번호 확인 입력
  * - 비밀번호 불일치 실시간 오류 표시
  * - POST /api/auth/signup 호출
- * - 성공 후 signIn() 자동 로그인 → '/' 리다이렉트
+ * - 성공 후 성공 메시지 표시 → '/login' 리다이렉트
+ * - SPEC-AUTH-002: PasswordStrengthIndicator, 429 에러 처리, 이메일 열거 방지
  */
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PasswordStrengthIndicator } from './PasswordStrengthIndicator'
 
 // @MX:ANCHOR: [AUTO] 회원가입 폼 - SignupPage의 핵심 컴포넌트
-// @MX:REASON: 신규 사용자 생성 및 자동 로그인 플로우의 단일 진입점
+// @MX:REASON: 신규 사용자 생성 플로우의 단일 진입점 (SPEC-AUTH-002: 이메일 열거 방지 적용)
+
+interface SignupResponse {
+  success?: boolean
+  error?: string
+  retryAfter?: number
+}
+
 export function SignupForm() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
+  const [isSuccess, setIsSuccess] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const redirectTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   // 비밀번호 불일치 실시간 감지
   const passwordMismatch =
     confirmPassword.length > 0 && password !== confirmPassword
 
+  // cleanup: 타이머 정리
+  useEffect(() => {
+    return () => {
+      if (redirectTimerRef.current) {
+        clearTimeout(redirectTimerRef.current)
+      }
+    }
+  }, [])
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
     if (password !== confirmPassword) {
-      setError('비밀번호가 일치하지 않습니다.')
+      setMessage('비밀번호가 일치하지 않습니다.')
+      setIsSuccess(false)
       return
     }
 
-    setError(null)
+    setMessage(null)
+    setIsSuccess(false)
     setIsLoading(true)
 
     try {
@@ -48,26 +70,34 @@ export function SignupForm() {
         body: JSON.stringify({ email, password }),
       })
 
-      const data = await response.json()
+      const data: SignupResponse = await response.json()
+
+      // SPEC-AUTH-002: 429 Rate Limit 처리
+      if (response.status === 429) {
+        const retryAfter = data.retryAfter || 0
+        const errorMessage = retryAfter > 0
+          ? `${retryAfter}초 후 다시 시도해 주세요.`
+          : '잠시 후 다시 시도해 주세요.'
+        setMessage(errorMessage)
+        setIsSuccess(false)
+        return
+      }
 
       if (!response.ok) {
-        setError(data.error || '회원가입 중 오류가 발생했습니다.')
+        setMessage(data.error || '회원가입 중 오류가 발생했습니다.')
+        setIsSuccess(false)
         return
       }
 
-      // 자동 로그인
-      const signInResult = await signIn('credentials', {
-        email,
-        password,
-        redirect: false,
-      })
+      // SPEC-AUTH-002: 이메일 열거 방지 - 항상 성공 메시지 표시
+      // 실제 계정 생성 여부와 상관없이 성공 응답 처리
+      setMessage('회원가입이 완료되었습니다. 로그인 페이지로 이동합니다.')
+      setIsSuccess(true)
 
-      if (signInResult?.error) {
-        setError('회원가입은 완료됐지만 로그인에 실패했습니다. 다시 로그인해 주세요.')
-        return
-      }
-
-      router.push('/')
+      // 2초 후 로그인 페이지로 이동 (성공 메시지 확인을 위해)
+      redirectTimerRef.current = setTimeout(() => {
+        router.push('/login')
+      }, 2000)
     } finally {
       setIsLoading(false)
     }
@@ -106,12 +136,14 @@ export function SignupForm() {
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="비밀번호 입력 (8자 이상)"
+          placeholder="비밀번호 입력 (12자 이상)"
           required
           autoComplete="new-password"
           disabled={isLoading}
-          minLength={8}
+          minLength={12}
         />
+        {/* SPEC-AUTH-002 TAG-5: PasswordStrengthIndicator 통합 */}
+        <PasswordStrengthIndicator password={password} />
       </div>
 
       <div className="space-y-2">
@@ -138,9 +170,12 @@ export function SignupForm() {
         )}
       </div>
 
-      {error && (
-        <p className="text-sm text-red-600" role="alert">
-          {error}
+      {message && (
+        <p
+          className={`text-sm ${isSuccess ? 'text-green-600' : 'text-red-600'}`}
+          role="alert"
+        >
+          {message}
         </p>
       )}
 

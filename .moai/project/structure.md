@@ -25,6 +25,11 @@ stock_watchlist/
 │   │   │   ├── badge.tsx       # 배지 컴포넌트
 │   │   │   ├── input.tsx       # 입력 컴포넌트
 │   │   │   └── loading.tsx     # 로딩 컴포넌트
+│   │   ├── auth/               # 인증 컴포넌트
+│   │   │   ├── LoginForm.tsx   # 로그인 폼
+│   │   │   ├── SignupForm.tsx  # 회원가입 폼
+│   │   │   ├── PasswordStrengthIndicator.tsx # 비밀번호 강도 표시
+│   │   │   └── PasswordInput.tsx # 비밀번호 입력 필드
 │   │   ├── dashboard/          # 대시보드 컴포넌트
 │   │   │   ├── MarketIndicators.tsx # 시장 지표 (코스피/코스닥/환율)
 │   │   │   ├── StockSearch.tsx # 종목 검색
@@ -45,6 +50,9 @@ stock_watchlist/
 │   │   ├── env.ts              # 환경 변수 검증
 │   │   ├── kiwoom-token-manager.ts  # 키움 OAuth2 토큰 관리 (싱글톤)
 │   │   ├── kiwoom-stock-api.ts # 키움 REST API 클라이언트
+│   │   ├── rate-limit.ts       # 무차별 대입 공격 방어 (in-memory Map)
+│   │   ├── password-validator.ts # 비밀번호 복잡성 검증 + zxcvbn 통합
+│   │   ├── auth.ts            # 인증 유틸리티 (NextAuth + Rate Limit)
 │   │   ├── stock-auto/         # stock_auto API 클라이언트
 │   │   │   ├── client.ts       # 시그널/발견 API 클라이언트
 │   │   │   └── sync-client.ts  # 관심종목 동기화 클라이언트
@@ -86,6 +94,9 @@ stock_watchlist/
 ### API 라우트
 
 - **api/stocks**: 주식 검색 및 정보 조회
+- **api/auth**: 인증 API
+- **api/auth/login**: 로그인 처리 (Rate Limit 포함)
+- **api/auth/signup**: 회원가입 처리 (Rate Limit, 이메일 열거 방지 포함)
 - **api/watchlist**: 관심종목 CRUD
 - **api/disclosures**: 공시 정보 조회
 - **api/health**: 헬스체크

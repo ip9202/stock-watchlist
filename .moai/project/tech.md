@@ -26,9 +26,17 @@
 
 ### 인증 및 상태 관리
 - **NextAuth.js v5** - 세션 기반 사용자 인증
+- **bcryptjs** 3.0.3 - 비밀번호 해싱 (cost factor 12)
+- **zxcvbn-ts** - 비밀번호 강도 평가 보안 라이브러리
 - **Prisma Adapter** - NextAuth 세션 데이터베이스 저장
 - **SWR** - API 응답 캐싱 및 동기화
 - React Hooks (useState, useEffect) - 로컬 상태 관리
+
+### 보안 강화
+- **Rate Limiting** - in-memory Map 기반 무차별 대입 공격 방어
+- **이메일 열거 방지** - 중복 이메일 시 200 OK 반환 (409 아님)
+- **비밀번호 복잡성 검증** - 최소 12자, 4종류 중 3종류 이상 요구
+- **자동 정리 메커니즘** - 만료된 Rate Limit 엔트리 1분 간격 정리
 
 ### 개발 도구
 - **ESLint** 9 - 코드 린팅

@@ -19,6 +19,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - CSRF 보호 - NextAuth.js v5 내장 CSRF 토큰 검증
   - 데모 사용자 마이그레이션 스크립트 - `admin@example.com` 계정으로 기존 데이터 이관
 
+- **SPEC-AUTH-002: 인증 시스템 보안 강화**
+  - Rate Limiting - 무차별 대입 공격 방어
+    - 로그인: 5분/5회 (IP+email 조합)
+    - 회원가입: 1시간/3회 (IP 기반)
+    - in-memory Map 기반 자동 정리 메커니즘
+  - 이메일 열거 공격 방지
+    - 중복 이메일 시 409 → 200 OK 반환
+    - 계정 존재 여부 노출 차단
+  - 비밀번호 복잡성 강화
+    - 최소 12자 (기존 8자에서 강화)
+    - 4종류 문자 중 최소 3종류 필수 (대문자/소문자/숫자/특수문자)
+  - 비밀번호 강도 실시간 평가
+    - zxcvbn-ts 통합 UI 컴포넌트
+    - 4단계 강도 표시 (약/보통/강/매우 강)
+    - 일반적인 약한 패턴 경고
+
 - **인증 관련 컴포넌트 및 파일**
   - `src/components/auth/LoginForm.tsx` - 로그인 폼 컴포넌트
   - `src/components/auth/SignupForm.tsx` - 회원가입 폼 컴포넌트
@@ -66,10 +82,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `next-auth` ^5.0.0-beta.31 추가
   - `@auth/prisma-adapter` ^2.11.2 추가
   - `bcryptjs` ^3.0.3 추가
+  - `@zxcvbn-ts/core` ^3.0.0 - 비밀번호 강도 평가 보안 라이브러리
+  - `@zxcvbn-ts/language-common` ^3.0.0 - 일반 약한 패턴 사전
+  - `@zxcvbn-ts/language-en` ^3.0.0 - 영문 기반 패턴 감지
 
 - **테스트 환경**
   - `vitest.config.ts` - jsdom 환경 설정 추가 (클라이언트 컴포넌트 테스트 지원)
   - `src/test-setup.ts` - jsdom 테스트 환경 초기화 파일 추가
+
+- **인증 보안 모듸 추가**
+  - `src/lib/rate-limit.ts` - Rate Limiting 유틸리티
+  - `src/lib/password-validator.ts` - 비밀번호 복잡성 검증 + zxcvbn 통합
+  - `src/components/auth/PasswordStrengthIndicator.tsx` - 비밀번호 강도 시각화
+  - `src/app/api/auth/signup/route.ts` - Rate Limit + 이메일 열거 방지 적용
+  - `src/lib/auth.ts` - Rate Limit 체크 통합
+  - 테스트 추가: 285개 전체 테스트 통과
 
 - **Prisma 스키마**
   - `prisma/schema.prisma` - User 모델 `hashedPassword` 필드 추가
@@ -84,16 +111,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - bcryptjs 비밀번호 해싱 (cost factor 12)
 - 세션 쿠키 보안 속성 (Secure, HttpOnly, SameSite=Lax)
 - CSRF 토큰 검증 (모든 상태 변경 요청)
-- 입력값 검증 - 이메일 형식, 비밀번호 길이 (8자 이상)
+- 입력값 검증 - 이메일 형식, 비밀번호 길이 (12자 이상)
 - 세션 데이터베이스 저장 (Prisma)
+- Rate Limiting - 무차별 대입 공격 방어 (5분/5회 로그인, 1시간/3회 회원가입)
+- 이메일 열거 공격 방지 (중복 이메일 시 200 OK 반환)
+- zxcvbn-ts 비밀번호 강도 실시간 평가
+- 비밀번호 복잡성 검증 (4종류 문자 중 3종류 이상)
 
 ### Testing
-- 테스트 커버리지: 약 90%
-- 신규 테스트 16개 추가 (총 220개)
+- 테스트 커버리지: 90%+ (신규 모듈 90%+ 커버리지)
+- 신규 테스트 65개 추가 (총 285개)
 - 인증 흐름 통합 테스트
 - 회원가입 성공/실패 케이스
 - 로그인 성공/실패 케이스
 - 미들웨어 라우트 보호 검증
+- Rate Limit 테스트 (5분/5회, 1시간/3회)
+- 이메일 열거 방지 테스트
+- 비밀번호 복잡성 검증 테스트
+- zxcvbn 통합 테스트
 
 ## [1.5.0] - 2026-04-17
 

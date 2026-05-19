@@ -1,5 +1,5 @@
 /**
- * LoginForm 컴포넌트 테스트 (SPEC-AUTH-001)
+ * LoginForm 컴포넌트 테스트 (SPEC-AUTH-001 + SPEC-AUTH-002)
  *
  * TDD RED → GREEN → REFACTOR 사이클
  */
@@ -107,6 +107,45 @@ describe('LoginForm', () => {
 
       await waitFor(() => {
         expect(button).toBeDisabled()
+      })
+    })
+  })
+
+  describe('SPEC-AUTH-002 TAG-6: Rate Limit 에러 처리', () => {
+    it('429 응답 시 Rate Limit 에러 메시지를 표시한다', async () => {
+      // NextAuth CredentialsSignin 에러 객체에 429 status 포함
+      mockSignIn.mockResolvedValueOnce({
+        ok: false,
+        error: { name: 'CredentialsSignin', status: 429 },
+      })
+      const user = userEvent.setup()
+
+      render(<LoginForm />)
+
+      await user.type(screen.getByLabelText(/이메일/i), 'test@example.com')
+      await user.type(screen.getByLabelText(/비밀번호/i), 'password123')
+      await user.click(screen.getByRole('button', { name: /로그인/i }))
+
+      await waitFor(() => {
+        expect(screen.getByText(/잠시 후 다시 시도해 주세요/i)).toBeInTheDocument()
+      })
+    })
+
+    it('429 응답에 retryAfter가 포함되면 카운트다운을 표시한다', async () => {
+      mockSignIn.mockResolvedValueOnce({
+        ok: false,
+        error: { name: 'CredentialsSignin', status: 429, retryAfter: 60 },
+      })
+      const user = userEvent.setup()
+
+      render(<LoginForm />)
+
+      await user.type(screen.getByLabelText(/이메일/i), 'test@example.com')
+      await user.type(screen.getByLabelText(/비밀번호/i), 'password123')
+      await user.click(screen.getByRole('button', { name: /로그인/i }))
+
+      await waitFor(() => {
+        expect(screen.getByText(/60초 후 다시 시도해 주세요/i)).toBeInTheDocument()
       })
     })
   })

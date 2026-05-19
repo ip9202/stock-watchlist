@@ -25,6 +25,9 @@
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.2",
     "@prisma/client": "^6.15.0",
+    "@zxcvbn-ts/core": "^3.0.4",
+    "@zxcvbn-ts/language-common": "^3.0.4",
+    "@zxcvbn-ts/language-en": "^3.0.2",
     "axios": "^1.11.0",
     "bcryptjs": "^3.0.3",
     "cheerio": "^1.1.2",

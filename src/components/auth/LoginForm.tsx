@@ -1,12 +1,13 @@
 'use client'
 
 /**
- * 로그인 폼 컴포넌트 (SPEC-AUTH-001)
+ * 로그인 폼 컴포넌트 (SPEC-AUTH-001 + SPEC-AUTH-002)
  *
  * - 이메일/비밀번호 입력
  * - signIn('credentials', { redirect: false }) 사용
  * - 실패 시 에러 메시지 표시
  * - 성공 시 '/' 리다이렉트 (basePath /stocks 자동 적용)
+ * - SPEC-AUTH-002: 429 Rate Limit 에러 처리
  */
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
@@ -14,6 +15,13 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+
+// NextAuth 에러 타입 확장
+interface AuthError {
+  name: string
+  status?: number
+  retryAfter?: number
+}
 
 // @MX:ANCHOR: [AUTO] 로그인 폼 - LoginPage, 인증 플로우의 핵심 진입점
 // @MX:REASON: 사용자 인증 흐름의 시작점, NextAuth signIn 호출의 단일 지점
@@ -39,6 +47,18 @@ export function LoginForm() {
       })
 
       if (result?.error) {
+        // SPEC-AUTH-002: 429 Rate Limit 에러 처리
+        const authError = result.error as unknown as AuthError
+        if (authError.status === 429) {
+          const retryAfter = authError.retryAfter || 0
+          const message = retryAfter > 0
+            ? `${retryAfter}초 후 다시 시도해 주세요.`
+            : '잠시 후 다시 시도해 주세요.'
+          setError(message)
+          return
+        }
+
+        // 일반 인증 에러
         setError('이메일 또는 비밀번호가 올바르지 않습니다.')
         return
       }
