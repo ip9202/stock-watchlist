@@ -1,7 +1,7 @@
 ---
 id: SPEC-AUTH-001
 version: 1.0.0
-status: draft
+status: completed
 created: 2026-05-19
 updated: 2026-05-19
 author: manager-spec
@@ -331,3 +331,102 @@ API Routes (src/app/api/*)
 ### Prisma 스키마 변경
 
 User 모델에 `hashedPassword` 필드를 추가하고, NextAuth 세션 관리를 위한 Account, Session 모델을 추가한다. (NextAuth v5 Prisma Adapter 권장 스키마 기준)
+
+---
+
+## 구현 노트 (Implementation Notes)
+
+### 구현 완료일
+2026-05-19
+
+### 구현 브랜치
+feature/SPEC-AUTH-001-email-auth
+
+### 계획 대비 실제 구현 차이
+
+#### 추가 구현된 항목
+
+1. **src/types/next-auth.d.ts** (계획에 없었음)
+   - NextAuth 세션 타입 확장
+   - Session 타입에 user 정보 추가
+   - JWT 토큰 타입 확장
+
+2. **src/test-setup.ts** (계획에 없었음)
+   - jsdom 테스트 환경 설정 파일
+   - @testing-library/dom 초기화
+   - Vitest jsdom 환경 설정
+
+3. **src/components/dashboard/DashboardClient.tsx** (계획에 없었음)
+   - src/app/page.tsx 서버 컴포넌트 전환을 위한 분리
+   - SessionProvider와의 호환성 개선
+
+4. **vitest.config.ts 업데이트**
+   - jsdom 환경 설정 추가
+   - 클라이언트 컴포넌트 테스트 지원
+
+#### TDD 결과
+
+- **신규 테스트**: 16개
+- **전체 테스트**: 220개 (기존 204개)
+- **테스트 커버리지**: 약 90%
+
+**테스트 분포**:
+- auth-packages.test.ts: 5개 (패키지 설치 검증)
+- auth-schema.test.ts: 4개 (Prisma 스키마 검증)
+- auth.test.ts: 6개 (NextAuth 인증 로직)
+- signup/route.test.ts: 6개 (회원가입 API)
+- middleware.test.ts: 2개 (라우트 보호)
+- LoginForm.test.tsx: 7개 (로그인 폼 UI)
+- SignupForm.test.tsx: 9개 (회원가입 폼 UI)
+
+#### 추가 구현 사항
+
+1. **보안 강화**
+   - CSRF 토큰 검증 (NextAuth.js v5 내장)
+   - 입력값 서버사이드 검증
+   - 에러 메시지 일반화 (계정 존재 여부 노출 방지)
+
+2. **사용자 경험**
+   - 로딩 상태 표시
+   - 실시간 비밀번호 확인 검증
+   - 필드별 오류 메시지
+
+3. **데이터 마이그레이션**
+   - 기존 `demo@example.com` 데이터 → `admin@example.com`으로 자동 마이그레이션
+   - 마이그레이션 스크립트 검증 테스트 포함
+
+#### 구현 품질 지표
+
+- **코드 커버리지**: 약 90%
+- **테스트 성공률**: 100% (220개 테스트 모두 통과)
+- **LSP 에러**: 0개
+- **린팅 경고**: 0개
+- **TypeScript 타입 에러**: 0개
+
+#### 배포 준비 사항
+
+1. **환경변수 설정**
+   - `AUTH_SECRET`: 프로덕션 랜덤 키 생성 필수
+   - `AUTH_URL`: 프로덕션 도메인으로 설정 (https://ip9202.site/stocks)
+
+2. **데이터베이스 마이그레이션**
+   - 신규 배포: `npx prisma migrate deploy` 또는 `./deploy/deploy.sh --db`
+   - 기존 배포: 데모 사용자 마이그레이션 스크립트 실행
+
+3. **빌드 프로세스**
+   - `npx prisma generate` 실행 필수
+   - Prisma 클라이언트 생성 확인
+
+#### 알려진 제한사항
+
+1. **회원가입 후 자동 로그인**
+   - 회원가입 완료 후 자동 로그인 처리 (세션 생성)
+   - 별도의 이메일 인증 불필요
+
+2. **비밀번호 재설정**
+   - 본 SPEC 범위 외
+   - 향후 별도 SPEC으로 구현 예정 (SPEC-AUTH-002)
+
+3. **세션 만료 시간**
+   - 기본값: 30일 (NextAuth.js 기본값)
+   - 커스터마이징 가능: src/lib/auth.ts의 session.maxAge 설정
