@@ -10,9 +10,17 @@
  * - SPEC-AUTH-002: 429 Rate Limit 에러 처리
  */
 import { useState } from 'react'
+import { signIn } from 'next-auth/react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+
+// NextAuth 에러 타입 확장
+interface AuthError {
+  name: string
+  status?: number
+  retryAfter?: number
+}
 
 // @MX:ANCHOR: [AUTO] 로그인 폼 - LoginPage, 인증 플로우의 핵심 진입점
 // @MX:REASON: 사용자 인증 흐름의 시작점, NextAuth signIn 호출의 단일 지점
@@ -30,19 +38,19 @@ export function LoginForm() {
     setIsLoading(true)
 
     try {
-      // 직접 API 요청으로 basePath 문제 해결
-      const response = await fetch('/stocks/api/auth/callback/credentials', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+      // basePath 인식을 위해 callbackUrl 명시적 지정
+      const result = await signIn('credentials', {
+        email,
+        password,
+        callbackUrl: `${window.location.origin}/stocks`,
+        redirect: false,
       })
 
-      if (!response.ok) {
-        const data = await response.json()
-
+      if (result?.error) {
         // SPEC-AUTH-002: 429 Rate Limit 에러 처리
-        if (response.status === 429) {
-          const retryAfter = data.retryAfter || 0
+        const authError = result.error as unknown as AuthError
+        if (typeof authError === 'object' && authError !== null && 'status' in authError && authError.status === 429) {
+          const retryAfter = authError.retryAfter || 0
           const message = retryAfter > 0
             ? `${retryAfter}초 후 다시 시도해 주세요.`
             : '잠시 후 다시 시도해 주세요.'
@@ -55,8 +63,10 @@ export function LoginForm() {
         return
       }
 
-      // 로그인 성공 - 페이지 새로고침으로 세션 적용
-      window.location.href = '/stocks'
+      if (result?.ok) {
+        // 세션 쿠키 설정을 위해 전체 페이지 새로고침
+        window.location.href = '/stocks'
+      }
     } finally {
       setIsLoading(false)
     }
