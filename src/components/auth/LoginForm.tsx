@@ -10,7 +10,7 @@
  * - SPEC-AUTH-002: 429 Rate Limit 에러 처리
  */
 import { useState } from 'react'
-import { signIn } from 'next-auth/react'
+import { signIn } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -64,7 +64,7 @@ export function LoginForm() {
       }
 
       if (result?.ok) {
-        router.push('/')
+        router.push('/stocks')
       }
     } finally {
       setIsLoading(false)
@@ -128,7 +128,7 @@ export function LoginForm() {
       <p className="text-center text-sm text-gray-600">
         계정이 없으신가요?{' '}
         <Link
-          href="/signup"
+          href="/stocks/signup"
           className="font-medium text-blue-600 hover:text-blue-500"
         >
           회원가입

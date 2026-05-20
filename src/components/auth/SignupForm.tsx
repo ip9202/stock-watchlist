@@ -10,7 +10,6 @@
  * - SPEC-AUTH-002: PasswordStrengthIndicator, 429 에러 처리, 이메일 열거 방지
  */
 import { useState, useEffect, useRef } from 'react'
-import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -96,7 +95,7 @@ export function SignupForm() {
 
       // 2초 후 로그인 페이지로 이동 (성공 메시지 확인을 위해)
       redirectTimerRef.current = setTimeout(() => {
-        router.push('/login')
+        router.push('/stocks/login')
       }, 2000)
     } finally {
       setIsLoading(false)
@@ -190,7 +189,7 @@ export function SignupForm() {
       <p className="text-center text-sm text-gray-600">
         이미 계정이 있으신가요?{' '}
         <Link
-          href="/login"
+          href="/stocks/login"
           className="font-medium text-blue-600 hover:text-blue-500"
         >
           로그인
