@@ -117,6 +117,8 @@
 - `DATABASE_URL` - PostgreSQL 연결 문자열
 - `KIWOOM_APP_KEY` - 키움증권 앱 키
 - `KIWOOM_SECRET_KEY` - 키움증권 시크릿 키
+- `AUTH_SECRET` - NextAuth.js 세션 암호화 키 (32-byte hex 권장)
+- `AUTH_URL` - NextAuth.js 공식 도메인 (배포: https://ip9202.site/stocks)
 
 **선택사항**:
 - `NAVER_CLIENT_ID` - 네이버 뉴스 API 클라이언트 ID
@@ -149,10 +151,18 @@
 - **데이터 처리**: chart-data-utils로 중복 제거, 시간 변환
 - **UI 상호 배타성**: 봉 타입 선택 시 캔들/기간 선택 시 라인 (동시 불가)
 
+### 인증 및 레이트 제한 패턴
+- **NextAuth.js v5**: Credentials Provider + JWT 세션 (bcryptjs 해싱)
+- **미들웨어**: src/middleware.ts (라우트 보호, 공개 경로 구분, Rate Limit 적용)
+- **Rate Limiting**: in-memory Map 기반 (signup=3회/1시간, signin=5회/15분)
+- **이메일 열거 방지**: 중복 시 200 OK 반환, 로그에 마스킹 (email.slice(0,3)+'***@'+domain)
+- **자동 정리**: lazyCleanup으로 만료된 Rate Limit 엔트리 1분 간격 제거
+- **callbackUrl**: /stocks/login으로 명시 (로그아웃 후 리다이렉트)
+
 ### 상태 관리 패턴
 - **서버 상태**: SWR로 API 데이터 캐싱 및 동기화
 - **로컬 상태**: React Hooks (useState, useEffect)
-- **사용자 데이터**: PostgreSQL Watchlist (선택적)
+- **사용자 데이터**: PostgreSQL Watchlist (인증된 사용자별 개인화)
 
 ## 보안 고려사항
 
@@ -161,6 +171,12 @@
 - **SQL Injection**: Prisma ORM 자동 방어
 - **데이터 검증**: env.ts 환경 변수 필수 확인
 - **CORS**: Nginx 기본 설정 (필요시 추가)
+- **인증 보안** (SPEC-AUTH-002):
+  - NextAuth 세션 (HTTP-Only, Secure, SameSite=Lax 쿠키)
+  - 비밀번호 bcryptjs 해싱 (cost factor 12)
+  - Rate Limiting (signup=3회/1시간, signin=5회/15분)
+  - 이메일 열거 방지 (중복 시 200 OK, 로그 마스킹)
+  - 미들웨어 기반 라우트 보호 (authRedirectPaths ≠ openPaths)
 
 ## 성능 최적화
 

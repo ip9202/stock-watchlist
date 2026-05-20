@@ -97,7 +97,7 @@ Stock Watchlist는 한국 주식 시장의 실시간 정보를 추적하고 관�
 - 데이터 업데이트는 장 중 실시간 (30초 캐시)
 - API 호출 제한으로 인해 과도한 요청 시 지연 가능
 
-## 완성된 기능 (2026-04-17)
+## 완성된 기능 (2026-05-20)
 
 - SPEC-API-001: 키움증권 REST API 완전 전환 (PyKRX 제거)
 - SPEC-CHART-001: 일봉/주봉 차트 (lightweight-charts v5)
@@ -109,6 +109,8 @@ Stock Watchlist는 한국 주식 시장의 실시간 정보를 추적하고 관�
 - SPEC-MASHUP-003: AI 시그널 프록시 API + UI 패널
 - SPEC-MASHUP-004: AI 종목 발굴 프록시 API + UI 패널
 - SPEC-MASHUP-005: 관심종목 동기화 (stock_auto ↔ stock_watchlist)
+- SPEC-AUTH-001: 이메일/비밀번호 사용자 인증 (NextAuth v5, bcryptjs, Prisma)
+- SPEC-AUTH-002: 인증 보안 강화 (로그아웃 버그 수정, Rate Limit 파싱, JWT 세션, 테스트)
 - 뉴스/공시 API: Python→Node.js native fetch 전환
 - 차트 개선: 1일 차트 시간축 (08:00~16:30), HH:MM 포맷, 이전장 종가/시가 참고선
 
