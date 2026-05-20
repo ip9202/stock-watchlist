@@ -2,7 +2,7 @@
  * 회원가입 API 라우트 (SPEC-AUTH-001, SPEC-AUTH-002)
  *
  * POST /api/auth/signup
- * - 입력 검증: RFC 5322 이메일, 비밀번호 12자 최소, 복잡성 검증
+ * - 입력 검증: RFC 5322 이메일, 비밀번호 8자 최소, 복잡성 검증
  * - Rate Limit: 1시간당 3회 시도 제한
  * - 이메일 열거 방지: 중복 이메일 시도 시 200 OK 반환 (AC-202, AC-204)
  * - bcryptjs cost 12으로 비밀번호 해싱
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // ============ SPEC-AUTH-002 비밀번호 길이 검증 (최소 12자, AC-205) ============
+    // ============ SPEC-AUTH-002 비밀번호 길이 검증 (최소 8자) ============
     if (!validatePasswordLength(password, MIN_PASSWORD_LENGTH)) {
       return NextResponse.json(
         {

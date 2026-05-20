@@ -5,7 +5,7 @@
  * - 회원가입 성공
  * - 중복 이메일 처리 (이메일 열거 방지: 200 OK 반환)
  * - 유효하지 않은 이메일 형식
- * - 비밀번호 길이 검증 (12자 최소, SPEC-AUTH-002)
+ * - 비밀번호 길이 검증 (8자 최소)
  * - 비밀번호 복잡성 검증 (3/4 종류, SPEC-AUTH-002)
  * - Rate Limit 검증 (3회/시간, SPEC-AUTH-002)
  */
@@ -63,7 +63,7 @@ vi.mock('@/lib/password-validator', () => ({
   validatePasswordComplexity: vi.fn(),
   evaluatePasswordStrength: vi.fn(),
   validatePassword: vi.fn(),
-  MIN_PASSWORD_LENGTH: 12,
+  MIN_PASSWORD_LENGTH: 8,
   REQUIRED_CHAR_TYPES: 3
 }))
 
@@ -284,14 +284,14 @@ describe('POST /api/auth/signup', () => {
 
   // ============ SPEC-AUTH-002 PASSWORD LENGTH TESTS (TAG-3) ============
 
-  it('11자 비밀번호는 400 반환 (최소 12자 요구, AC-205)', async () => {
+  it('7자 비밀번호는 400 반환 (최소 8자 요구)', async () => {
     const { validatePasswordLength } = await import('@/lib/password-validator')
     vi.mocked(validatePasswordLength).mockReturnValue(false)
 
     const { POST } = await import('../route')
     const request = createRequest({
       email: 'test@example.com',
-      password: 'Short1!abcde'  // 11자
+      password: 'Short1!'  // 7자
     })
 
     const response = await POST(request)
@@ -302,7 +302,7 @@ describe('POST /api/auth/signup', () => {
     expect(data.error).toContain('비밀번호')
   })
 
-  it('12자 비밀번호는 허용 (AC-205)', async () => {
+  it('8자 비밀번호는 허용', async () => {
     const { db } = await import('@/lib/db')
 
     vi.mocked(db.user.findUnique).mockResolvedValue(null)
@@ -318,7 +318,7 @@ describe('POST /api/auth/signup', () => {
     const { POST } = await import('../route')
     const request = createRequest({
       email: 'test@example.com',
-      password: 'Valid1!abcde'  // 12자
+      password: 'Valid1!ab'  // 8자
     })
 
     const response = await POST(request)
@@ -342,7 +342,7 @@ describe('POST /api/auth/signup', () => {
     // 소문자 + 숫자 (2종류)
     const request = createRequest({
       email: 'test@example.com',
-      password: 'password12345678'  // 12자지만 소문자+숫자만
+      password: 'pass1234'  // 8자지만 소문자+숫자만
     })
 
     const response = await POST(request)

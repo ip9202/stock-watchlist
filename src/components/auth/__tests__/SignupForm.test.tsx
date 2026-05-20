@@ -165,19 +165,19 @@ describe('SignupForm', () => {
     })
   })
 
-  describe('SPEC-AUTH-002 TAG-6: 비밀번호 minLength 12자로 변경', () => {
-    it('비밀번호 플레이스홀더에 12자 이상 안내를 표시한다', () => {
+  describe('SPEC-AUTH-002 TAG-6: 비밀번호 minLength 8자로 변경', () => {
+    it('비밀번호 플레이스홀더에 8자 이상 안내를 표시한다', () => {
       render(<SignupForm />)
 
       const passwordInput = screen.getByLabelText('비밀번호')
-      expect(passwordInput).toHaveAttribute('placeholder', '비밀번호 입력 (12자 이상)')
+      expect(passwordInput).toHaveAttribute('placeholder', '비밀번호 입력 (8자 이상)')
     })
 
-    it('비밀번호 입력 필드의 minLength가 12로 설정되어 있다', () => {
+    it('비밀번호 입력 필드의 minLength가 8로 설정되어 있다', () => {
       render(<SignupForm />)
 
       const passwordInput = screen.getByLabelText('비밀번호')
-      expect(passwordInput).toHaveAttribute('minLength', '12')
+      expect(passwordInput).toHaveAttribute('minLength', '8')
     })
   })
 

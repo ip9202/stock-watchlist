@@ -4,14 +4,14 @@
  * 비밀번호 길이, 복잡성, 강도 검증 기능
  * zxcvbn-ts 라이브러리 사용하여 비밀번호 강도 평가
  *
- * @MX:NOTE MIN_PASSWORD_LENGTH=12: 최소 비밀번호 길이 (12자)
+ * @MX:NOTE MIN_PASSWORD_LENGTH=8: 최소 비밀번호 길이 (8자)
  * @MX:NOTE REQUIRED_CHAR_TYPES=3: 필수 문자 유형 개수 (3가지)
  */
 
 import { zxcvbn, ZxcvbnResult } from '@zxcvbn-ts/core';
 
 // 상수 정의
-export const MIN_PASSWORD_LENGTH = 12;
+export const MIN_PASSWORD_LENGTH = 8;
 export const REQUIRED_CHAR_TYPES = 3;
 
 /**

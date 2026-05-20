@@ -136,11 +136,11 @@ export function SignupForm() {
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="비밀번호 입력 (12자 이상)"
+          placeholder="비밀번호 입력 (8자 이상)"
           required
           autoComplete="new-password"
           disabled={isLoading}
-          minLength={12}
+          minLength={8}
         />
         {/* SPEC-AUTH-002 TAG-5: PasswordStrengthIndicator 통합 */}
         <PasswordStrengthIndicator password={password} />

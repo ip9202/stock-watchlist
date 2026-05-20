@@ -1,0 +1,24 @@
+## SPEC-POLL-001 Progress
+
+- Started: 2026-04-13
+- Phase 0.5: Skipped (memory_guard disabled)
+- Phase 0.9: Language detected = TypeScript (moai-lang-typescript)
+- Phase 0.95: Standard Mode selected (6 files, 2 domains, feature SPEC)
+- Harness: standard (file_count > 3, multi_domain)
+- Phase 1: Plan approved (user confirmed)
+- Phase 1.5: tasks.md created (6 tasks, T-006 deferred)
+- Phase 1.6: 7 acceptance criteria registered as pending tasks
+- Phase 1.7: 3 stub files created (market-hours.ts, batch/route.ts, usePollingData.ts)
+- Phase 1.8: MX scan complete (1 @MX:NOTE in MarketIndicators.tsx, no tags in cache.ts/StockCard.tsx)
+- Development mode: TDD (RED-GREEN-REFACTOR)
+- Batch mode: Condition A met (task_count >= 5), proceeding with standard sequential TDD
+- Phase 2: TDD implementation complete
+  - T-001: market-hours.ts (14 tests, 100% coverage)
+  - T-002: TTL adjusted (stock 15s, index 30s)
+  - T-003: batch API route (9 tests)
+  - T-004: usePollingData hook (implemented)
+  - T-005: StockCard + MarketIndicators polling integration
+  - T-006: Polling Settings UI (DEFERRED)
+- Phase 2.5: TRUST 5 validation PASS (133 tests, tsc clean, lint pre-existing only)
+- Phase 3: Committed 84ca3fc on main
+- Completed: 2026-04-13
