@@ -5,9 +5,12 @@
  * - /api/auth/error로 리다이렉트됨
  */
 
-import { NextResponse } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 
-export async function GET() {
-  // 로그인 페이지로 리다이렉트하면서 에러 쿼리 파라미터 전달
-  return NextResponse.redirect('/stocks/login?error=credentials')
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  // request.url에서 origin 추출하여 절대 URL 구성 (상대 경로는 프로덕션에서 미동작)
+  const url = new URL(request.url)
+  const loginUrl = new URL('/stocks/login', url.origin)
+  loginUrl.searchParams.set('error', 'credentials')
+  return NextResponse.redirect(loginUrl)
 }
