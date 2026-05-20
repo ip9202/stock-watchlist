@@ -14,7 +14,14 @@ export const metadata: Metadata = {
   description: '이메일과 비밀번호로 로그인하세요',
 }
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>
+}) {
+  const params = await searchParams
+  const error = params.error
+
   // 이미 로그인된 사용자는 홈으로
   const session = await auth()
   if (session) {
@@ -26,7 +33,7 @@ export default async function LoginPage() {
       <h2 className="mb-6 text-center text-2xl font-bold tracking-tight text-gray-900">
         로그인
       </h2>
-      <LoginForm />
+      <LoginForm initialError={error} />
     </>
   )
 }

@@ -17,10 +17,14 @@ import { Input } from '@/components/ui/input'
 
 // @MX:ANCHOR: [AUTO] 로그인 폼 - LoginPage, 인증 플로우의 핵심 진입점
 // @MX:REASON: 사용자 인증 흐름의 시작점, NextAuth signIn 호출의 단일 지점
-export function LoginForm() {
+interface LoginFormProps {
+  initialError?: string
+}
+
+export function LoginForm({ initialError }: LoginFormProps = {}) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(initialError || null)
   const [isLoading, setIsLoading] = useState(false)
 
   // @MX:WARN: [AUTO] 인증 에러 처리 - CredentialsSignin 에러는 계정 존재 여부 노출 금지
