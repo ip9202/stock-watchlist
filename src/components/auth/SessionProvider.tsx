@@ -18,7 +18,7 @@ interface SessionProviderProps {
 // @MX:REASON: AuthNav, 기타 인증 컴포넌트들이 이 Provider를 통해 세션에 접근
 export function SessionProvider({ children, session }: SessionProviderProps) {
   return (
-    <NextAuthSessionProvider session={session}>
+    <NextAuthSessionProvider session={session} basePath="/stocks/api/auth">
       {children}
     </NextAuthSessionProvider>
   )
