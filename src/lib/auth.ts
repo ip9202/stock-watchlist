@@ -9,7 +9,6 @@
 
 import NextAuth from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
-import { PrismaAdapter } from '@auth/prisma-adapter'
 import bcryptjs from 'bcryptjs'
 import { db } from '@/lib/db'
 
@@ -53,11 +52,11 @@ export async function authorizeCredentials(credentials: {
 // @MX:ANCHOR: [AUTO] NextAuth 설정 핵심 객체 - 전체 인증 시스템의 진입점
 // @MX:REASON: route handler, middleware, 서버 컴포넌트 모두에서 참조
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(db),
   // @MX:NOTE: [AUTO] basePath 설정 - Next.js basePath /stocks와 일치시켜야 인증 콜백 URL이 올바르게 동작
+  // @MX:NOTE: PrismaAdapter 제외 - Credentials Provider는 JWT strategy 사용으로 DB 어댑터 불필요
   basePath: '/stocks/api/auth',
   session: {
-    strategy: 'database'
+    strategy: 'jwt'
   },
   pages: {
     signIn: '/login'
