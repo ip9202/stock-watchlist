@@ -52,10 +52,11 @@ export async function authorizeCredentials(credentials: {
 // @MX:ANCHOR: [AUTO] NextAuth 설정 핵심 객체 - 전체 인증 시스템의 진입점
 // @MX:REASON: route handler, middleware, 서버 컴포넌트 모두에서 참조
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  // @MX:NOTE: [AUTO] basePath는 /api/auth (Next.js standalone에서 클라이언트가 실제 요청하는 경로)
-  // @MX:NOTE: /stocks/api/auth로 설정하면 next-auth/react 기본 요청(/api/auth/*)와 불일치 → UnknownAction 에러
+  // @MX:NOTE: [AUTO] basePath는 /stocks/api/auth - req.url에 Next.js basePath(/stocks)가 포함되어 있으므로
+  // @MX:NOTE: Auth.js는 new URL(req.url).pathname으로 액션 파싱 → /stocks/api/auth로 맞춰야 UnknownAction 방지
+  // @MX:NOTE: next-auth/react도 SessionProvider basePath="/stocks/api/auth" 통해 동일 경로 사용
   // @MX:NOTE: PrismaAdapter 제외 - Credentials Provider는 JWT strategy 사용으로 DB 어댑터 불필요
-  basePath: '/api/auth',
+  basePath: '/stocks/api/auth',
   session: {
     strategy: 'jwt'
   },
