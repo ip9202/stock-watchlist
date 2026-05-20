@@ -7,10 +7,11 @@
 
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function GET(request: NextRequest): Promise<NextResponse> {
-  // request.url에서 origin 추출하여 절대 URL 구성 (상대 경로는 프로덕션에서 미동작)
-  const url = new URL(request.url)
-  const loginUrl = new URL('/stocks/login', url.origin)
+export async function GET(_request: NextRequest): Promise<NextResponse> {
+  // Nginx 리버스 프록시 환경에서 request.url origin이 0.0.0.0:3005(내부 주소)로 잡힘
+  // AUTH_URL 환경변수(https://ip9202.site)를 사용하여 정확한 퍼블릭 URL 구성
+  const origin = process.env.AUTH_URL ?? 'https://ip9202.site'
+  const loginUrl = new URL('/stocks/login', origin)
   loginUrl.searchParams.set('error', 'credentials')
   return NextResponse.redirect(loginUrl)
 }
