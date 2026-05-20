@@ -21,10 +21,18 @@ interface LoginFormProps {
   initialError?: string
 }
 
+function mapAuthError(error: string | null | undefined): string | null {
+  if (!error) return null
+  if (error.includes('CredentialsSignin') || error === 'credentials') {
+    return '이메일 또는 비밀번호가 올바르지 않습니다.'
+  }
+  return '로그인 중 오류가 발생했습니다. 다시 시도해 주세요.'
+}
+
 export function LoginForm({ initialError }: LoginFormProps = {}) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(initialError || null)
+  const [error, setError] = useState<string | null>(mapAuthError(initialError))
   const [isLoading, setIsLoading] = useState(false)
 
   // @MX:WARN: [AUTO] 인증 에러 처리 - CredentialsSignin 에러는 계정 존재 여부 노출 금지
