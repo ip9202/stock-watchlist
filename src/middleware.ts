@@ -21,7 +21,7 @@ export default auth(async function middleware(req: NextRequest & { auth: unknown
 
   // Rate Limit: POST /api/auth/callback/credentials
   // @MX:NOTE: [AUTO] 로그인 Rate Limit - 무차별 대입 공격 방지
-  if (req.method === 'POST' && pathname === '/api/auth/callback/credentials') {
+  if (req.method === 'POST' && pathname === '/stocks/api/auth/callback/credentials') {
     // IP 추출
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
 
@@ -58,17 +58,23 @@ export default auth(async function middleware(req: NextRequest & { auth: unknown
   }
 
   // 공개 경로 (인증 불필요)
+  // @MX:NOTE: [AUTO] basePath /stocks 제거 후 비교 - middleware pathname은 전체 경로 포함
+  const basePath = '/stocks'
+  const pathnameWithoutBase = pathname.startsWith(basePath)
+    ? pathname.slice(basePath.length)
+    : pathname
+
   const publicPaths = ['/login', '/signup']
-  const isPublicPath = publicPaths.some(p => pathname === p || pathname.startsWith(p + '/'))
+  const isPublicPath = publicPaths.some(p => pathnameWithoutBase === p || pathnameWithoutBase.startsWith(p + '/'))
 
   // 인증된 사용자가 로그인 페이지에 접근 → 홈으로 리다이렉트
   if (session && isPublicPath) {
-    return NextResponse.redirect(new URL('/', req.url))
+    return NextResponse.redirect(new URL('/stocks', req.url))
   }
 
   // 미인증 사용자가 보호 경로에 접근 → 로그인으로 리다이렉트
   if (!session && !isPublicPath) {
-    return NextResponse.redirect(new URL('/login', req.url))
+    return NextResponse.redirect(new URL('/stocks/login', req.url))
   }
 
   return NextResponse.next()
