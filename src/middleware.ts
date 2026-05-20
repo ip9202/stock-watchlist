@@ -64,20 +64,28 @@ export default auth(async function middleware(req: NextRequest & { auth: unknown
     ? pathname.slice(basePath.length)
     : pathname
 
-  const publicPaths = ['/login', '/signup', '/api/auth', '/', '']
-  const isPublicPath = publicPaths.some(p =>
+  // 인증된 사용자를 홈으로 리다이렉트할 UI 경로 (로그인/회원가입 페이지만)
+  const authRedirectPaths = ['/login', '/signup']
+  const isAuthRedirectPath = authRedirectPaths.some(p =>
+    pathnameWithoutBase === p || pathnameWithoutBase.startsWith(p + '/')
+  )
+
+  // 인증 없이 접근 가능한 모든 경로 (/api/auth/* 포함)
+  const openPaths = ['/api/auth', '/', '']
+  const isOpenPath = isAuthRedirectPath || openPaths.some(p =>
     pathnameWithoutBase === p ||
     pathnameWithoutBase === '' ||
     (p.length > 0 && pathnameWithoutBase.startsWith(p + '/'))
   )
 
-  // 인증된 사용자가 로그인 페이지에 접근 → 홈으로 리다이렉트
-  if (session && isPublicPath) {
+  // 인증된 사용자가 로그인/회원가입 페이지에 접근 → 홈으로 리다이렉트
+  // @MX:NOTE: [AUTO] /api/auth/* 는 제외 - signOut 등 API 호출이 차단되지 않도록
+  if (session && isAuthRedirectPath) {
     return NextResponse.redirect(new URL('/stocks', req.url))
   }
 
   // 미인증 사용자가 보호 경로에 접근 → 로그인으로 리다이렉트
-  if (!session && !isPublicPath) {
+  if (!session && !isOpenPath) {
     return NextResponse.redirect(new URL('/stocks/login', req.url))
   }
 
