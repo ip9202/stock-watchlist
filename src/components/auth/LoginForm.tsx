@@ -10,7 +10,7 @@
  * - SPEC-AUTH-002: 429 Rate Limit 에러 처리
  */
 import { useState } from 'react'
-import { signIn } from '@/lib/auth'
+import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
