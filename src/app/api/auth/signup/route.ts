@@ -102,7 +102,8 @@ export async function POST(request: NextRequest) {
     if (existingUser) {
       // @MX:NOTE 이메일 열거 방지: 중복 이메일 시도 시 200 OK 반환 (AC-204)
       // 공격자가 이메일 존재 여부를 확인할 수 없도록 성공 응답 반환
-      console.warn(`[SPEC-AUTH-002] 중복 이메일 시도 감지: ${email} from ${ip}`)
+      const maskedEmail = email.slice(0, 3) + '***@' + email.split('@')[1]
+      console.warn(`[SPEC-AUTH-002] 중복 이메일 시도 감지: ${maskedEmail} from ${ip}`)
 
       // 존재하는 사용자 정보 반환 (비밀번호 제외)
       // eslint-disable-next-line @typescript-eslint/no-unused-vars

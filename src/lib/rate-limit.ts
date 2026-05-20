@@ -60,10 +60,10 @@ function lazyCleanup(): void {
   const now = Date.now();
   const entriesToDelete: string[] = [];
 
-  // 만료된 항목 수집 (현재 시간 기준)
+  // 만료된 항목 수집 - SIGNUP_WINDOW(3600초)를 상한으로 사용하여 조기 삭제 방지
+  const maxWindowMs = SIGNUP_WINDOW * 1000;
   for (const [key, entry] of rateLimitMap.entries()) {
-    const windowMs = entry.windowStart + (300 * 1000); // 최대 윈도우 기간 가정
-    if (now > windowMs) {
+    if (now > entry.windowStart + maxWindowMs) {
       entriesToDelete.push(key);
     }
   }
