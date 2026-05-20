@@ -64,8 +64,8 @@ export default auth(async function middleware(req: NextRequest & { auth: unknown
     ? pathname.slice(basePath.length)
     : pathname
 
-  const publicPaths = ['/login', '/signup', '/api/auth', '/']
-  const isPublicPath = publicPaths.some(p => pathnameWithoutBase === p || pathnameWithoutBase.startsWith(p + '/'))
+  const publicPaths = ['/login', '/signup', '/api/auth', '/', '']
+  const isPublicPath = publicPaths.some(p => pathnameWithoutBase === p || pathnameWithoutBase === '' || pathnameWithoutBase.startsWith(p + '/'))
 
   // 인증된 사용자가 로그인 페이지에 접근 → 홈으로 리다이렉트
   if (session && isPublicPath) {
