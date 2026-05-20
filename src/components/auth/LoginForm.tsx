@@ -15,13 +15,6 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
-// NextAuth 에러 타입 확장
-interface AuthError {
-  name: string
-  status?: number
-  retryAfter?: number
-}
-
 // @MX:ANCHOR: [AUTO] 로그인 폼 - LoginPage, 인증 플로우의 핵심 진입점
 // @MX:REASON: 사용자 인증 흐름의 시작점, NextAuth signIn 호출의 단일 지점
 export function LoginForm() {
@@ -43,30 +36,44 @@ export function LoginForm() {
         email,
         password,
         callbackUrl: `${window.location.origin}/stocks`,
-        redirect: false,
+        redirect: false,  // 페이지 자동 리다이렉트 방지
       })
 
-      if (result?.error) {
-        // SPEC-AUTH-002: 429 Rate Limit 에러 처리
-        const authError = result.error as unknown as AuthError
-        if (typeof authError === 'object' && authError !== null && 'status' in authError && authError.status === 429) {
-          const retryAfter = authError.retryAfter || 0
-          const message = retryAfter > 0
-            ? `${retryAfter}초 후 다시 시도해 주세요.`
-            : '잠시 후 다시 시도해 주세요.'
-          setError(message)
-          return
-        }
-
-        // 일반 인증 에러
-        setError('이메일 또는 비밀번호가 올바르지 않습니다.')
+      // 결과 확인
+      if (result?.ok) {
+        // 로그인 성공 - 세션 쿠키 설정을 위해 전체 페이지 새로고침
+        window.location.href = '/stocks'
         return
       }
 
-      if (result?.ok) {
-        // 세션 쿠키 설정을 위해 전체 페이지 새로고침
-        window.location.href = '/stocks'
+      // 에러 처리
+      if (result?.error) {
+        // 에러 타입 확인
+        const error = result.error
+
+        // SPEC-AUTH-002: 429 Rate Limit 에러 처리
+        if (typeof error === 'string' && error.includes('429')) {
+          setError('너무 많은 로그인 시도입니다. 잠시 후 다시 시도해 주세요.')
+          return
+        }
+
+        if (typeof error === 'string' && error.includes('CredentialsSignin')) {
+          setError('이메일 또는 비밀번호가 올바르지 않습니다.')
+          return
+        }
+
+        // 기타 에러
+        setError('로그인 중 오류가 발생했습니다. 다시 시도해 주세요.')
+        console.error('Login error:', error)
+        return
       }
+
+      // 결과가 없는 경우
+      setError('로그인 중 오류가 발생했습니다. 다시 시도해 주세요.')
+    } catch (err) {
+      // 네트워크 에러 등
+      console.error('Login exception:', err)
+      setError('네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.')
     } finally {
       setIsLoading(false)
     }
