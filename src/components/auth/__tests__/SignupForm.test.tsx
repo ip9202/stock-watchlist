@@ -100,7 +100,7 @@ describe('SignupForm', () => {
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
-          '/api/auth/signup',
+          '/stocks/api/auth/signup',
           expect.objectContaining({
             method: 'POST',
           })

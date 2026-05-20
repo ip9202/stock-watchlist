@@ -29,7 +29,7 @@ export function AuthNav() {
           variant="outline"
           size="sm"
           onClick={() =>
-            signOut({ redirectTo: '/stocks/login' })
+            signOut({ callbackUrl: '/stocks/login' })
           }
           className="flex items-center gap-1.5"
         >

@@ -54,6 +54,13 @@ describe('LoginForm', () => {
       mockSignIn.mockResolvedValueOnce({ ok: true, error: null })
       const user = userEvent.setup()
 
+      // window.location.href 할당을 감지하기 위한 모킹
+      const originalLocation = window.location
+      Object.defineProperty(window, 'location', {
+        writable: true,
+        value: { href: '' },
+      })
+
       render(<LoginForm />)
 
       await user.type(screen.getByLabelText(/이메일/i), 'test@example.com')
@@ -64,12 +71,19 @@ describe('LoginForm', () => {
         expect(mockSignIn).toHaveBeenCalledWith('credentials', {
           email: 'test@example.com',
           password: 'password123',
+          callbackUrl: expect.stringContaining('/stocks'),
           redirect: false,
         })
       })
 
       await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith('/')
+        expect(window.location.href).toBe('/stocks')
+      })
+
+      // 복원
+      Object.defineProperty(window, 'location', {
+        writable: true,
+        value: originalLocation,
       })
     })
   })
@@ -113,10 +127,11 @@ describe('LoginForm', () => {
 
   describe('SPEC-AUTH-002 TAG-6: Rate Limit 에러 처리', () => {
     it('429 응답 시 Rate Limit 에러 메시지를 표시한다', async () => {
-      // NextAuth CredentialsSignin 에러 객체에 429 status 포함
+      // NextAuth v5 signIn({ redirect: false }) 결과: status가 최상위 필드로 반환
       mockSignIn.mockResolvedValueOnce({
         ok: false,
-        error: { name: 'CredentialsSignin', status: 429 },
+        status: 429,
+        error: 'CredentialsSignin',
       })
       const user = userEvent.setup()
 
@@ -131,10 +146,12 @@ describe('LoginForm', () => {
       })
     })
 
-    it('429 응답에 retryAfter가 포함되면 카운트다운을 표시한다', async () => {
+    it('429 응답 시 Rate Limit 에러 메시지를 표시한다 (retryAfter 포함)', async () => {
+      // NextAuth v5는 Retry-After 헤더를 result에 노출하지 않으므로 고정 메시지 표시
       mockSignIn.mockResolvedValueOnce({
         ok: false,
-        error: { name: 'CredentialsSignin', status: 429, retryAfter: 60 },
+        status: 429,
+        error: 'CredentialsSignin',
       })
       const user = userEvent.setup()
 
@@ -145,7 +162,7 @@ describe('LoginForm', () => {
       await user.click(screen.getByRole('button', { name: /로그인/i }))
 
       await waitFor(() => {
-        expect(screen.getByText(/60초 후 다시 시도해 주세요/i)).toBeInTheDocument()
+        expect(screen.getByText(/잠시 후 다시 시도해 주세요/i)).toBeInTheDocument()
       })
     })
   })

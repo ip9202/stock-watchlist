@@ -63,8 +63,8 @@ export function LoginForm({ initialError }: LoginFormProps = {}) {
         // 에러 타입 확인
         const error = result.error
 
-        // SPEC-AUTH-002: 429 Rate Limit 에러 처리
-        if (typeof error === 'string' && error.includes('429')) {
+        // SPEC-AUTH-002: 429 Rate Limit 에러 처리 (result.status 기준 - NextAuth v5 beta)
+        if (result?.status === 429) {
           setError('너무 많은 로그인 시도입니다. 잠시 후 다시 시도해 주세요.')
           return
         }

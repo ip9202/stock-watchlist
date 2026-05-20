@@ -29,10 +29,11 @@ export default auth(async function middleware(req: NextRequest & { auth: unknown
     let email = 'unknown'
     try {
       const clonedReq = req.clone()
-      const body = await clonedReq.json()
-      email = body?.credentials?.email || 'unknown'
+      const text = await clonedReq.text()
+      const params = new URLSearchParams(text)
+      email = params.get('email') || 'unknown'
     } catch {
-      // JSON 파싱 실패 시 기본값 사용
+      // 파싱 실패 시 IP 단위 Rate Limit으로 폴백
     }
 
     const rateLimitKey = `${ip}:${email}`
