@@ -64,7 +64,7 @@ export function SignupForm() {
 
     try {
       // 회원가입 API 호출
-      const response = await fetch('/api/auth/signup', {
+      const response = await fetch('/stocks/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
