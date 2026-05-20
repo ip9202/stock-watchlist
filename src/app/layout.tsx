@@ -21,6 +21,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Stock Watchlist - 관심종목 모니터링",
   description: "내 관심종목들의 주가, 뉴스, 커뮤니티 반응을 한번에 확인하세요",
+  icons: {
+    icon: "/stocks/favicon.ico",
+  },
 };
 
 export default async function RootLayout({
