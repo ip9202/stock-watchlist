@@ -64,7 +64,7 @@ export function LoginForm() {
       }
 
       if (result?.ok) {
-        router.push('/stocks')
+        router.push('/')
       }
     } finally {
       setIsLoading(false)
@@ -128,7 +128,7 @@ export function LoginForm() {
       <p className="text-center text-sm text-gray-600">
         계정이 없으신가요?{' '}
         <Link
-          href="/stocks/signup"
+          href="/signup"
           className="font-medium text-blue-600 hover:text-blue-500"
         >
           회원가입

@@ -95,7 +95,7 @@ export function SignupForm() {
 
       // 2초 후 로그인 페이지로 이동 (성공 메시지 확인을 위해)
       redirectTimerRef.current = setTimeout(() => {
-        router.push('/stocks/login')
+        router.push('/login')
       }, 2000)
     } finally {
       setIsLoading(false)
@@ -189,7 +189,7 @@ export function SignupForm() {
       <p className="text-center text-sm text-gray-600">
         이미 계정이 있으신가요?{' '}
         <Link
-          href="/stocks/login"
+          href="/login"
           className="font-medium text-blue-600 hover:text-blue-500"
         >
           로그인
